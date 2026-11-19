@@ -10,7 +10,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(__dirname));
 const PORT = process.env.PORT || 3000;
 const BOT_TOKEN = process.env.BOT_TOKEN || '';
-const WEBAPP_URL = process.env.WEBAPP_URL || 'https://shaya-quiz-earn-bot.onrender.com';
+const WEBAPP_URL = process.env.WEBAPP_URL || 'https://shayaquizearnbot.onrender.com';
 const QUIZ_WEBAPP_URL = WEBAPP_URL + '/quiz.html';
 const ADMIN_ID = parseInt(process.env.ADMIN_ID || '0');
 const GROUP_URL = 'https://t.me/ShayaEarnNetwork';
