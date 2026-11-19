@@ -2,7 +2,6 @@
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SHAYA QUIZ BOT - Play Win Withdraw</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<!-- ONCLICKA TMA REWARDED VIDEO - Spot 6155603 - Site 473230 - 2in1 -->
 <script src="https://js.onclckvd.com/in-stream-ad-admanager/tma.js"></script>
 <style>
 *{box-sizing:border-box} body{margin:0;font-family:Arial,sans-serif;background:#0b0f14;color:#fff}
@@ -66,26 +65,26 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 <button class="bigbtn" id="adContinueBtn" onclick="closeAdEarly()" style="display:none;background:#00ff88">✅ CONTINUE →</button>
 </div>
 <script>
-// --- ONCLICKA TMA REWARDED VIDEO - Spot 6155603 - 2in1 ---
 let tmaReady = false;
 window.initCdTma?.({ id: '6155603' }).then(show => { window.show = show; tmaReady = true; }).catch(e => console.log('TMA init error', e));
-
 const tg = window.Telegram?.WebApp; if(tg){ tg.ready(); tg.expand(); }
 const params = new URLSearchParams(location.search);
 const user_id = params.get('user_id') || tg?.initDataUnsafe?.user?.id || 'guest_'+Math.floor(Math.random()*999999);
 const user_name = tg?.initDataUnsafe?.user?.first_name || 'Player';
-const DAILY = 200;
-const QUESTION_TIME = 15;
-const FEEDBACK_TIME = 2000;
+const DAILY = 200; const QUESTION_TIME = 15; const FEEDBACK_TIME = 2000;
 let dailyPoints=0, playPoints=0, points=0, qIndex=0, correct=0, wrong=0, qInRound=0, currentQ=null, timer=null, timeLeft=QUESTION_TIME, playing=false, lastClaim='';
-let inAd=false; let serverReady=false;
-let adShowing=false; let adClosed=false; let answered=false;
-let adMode='question'; // 2in1: 'entry' or 'question'
-let entryAdDone=false; // 2in1: entry ad only once per round
+let inAd=false; let serverReady=false; let adShowing=false; let adClosed=false; let answered=false; let adMode='question'; let entryAdDone=false;
 function save(){
   if(!serverReady) return;
   localStorage.setItem('shaya_quiz_'+user_id, JSON.stringify({dailyPoints,playPoints,points,qIndex,correct,wrong,lastClaim})); updateUI();
-  fetch('/api/quiz-sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id,name:user_name,points,playPoints,dailyPoints,qIndex,correct,wrong})}).catch(()=>{});
+  // FIX: server now returns corrected values if phone was stale - apply them
+  fetch('/api/quiz-sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id,name:user_name,points,playPoints,dailyPoints,qIndex,correct,wrong})})
+  .then(r=>r.json()).then(d=>{
+    if(d && d.user && d.corrected){
+      dailyPoints=d.user.dailyPoints||0; playPoints=d.user.playPoints||0; points=d.user.points||0;
+      saveLocalOnly(); document.getElementById('claimMsg').innerText='⚠️ Stale phone corrected from Supabase - approve restored!';
+    }
+  }).catch(()=>{});
 }
 function saveLocalOnly(){ localStorage.setItem('shaya_quiz_'+user_id, JSON.stringify({dailyPoints,playPoints,points,qIndex,correct,wrong,lastClaim})); updateUI(); }
 function updateUI(){
@@ -95,12 +94,27 @@ function updateUI(){
   document.getElementById('progressLabel').innerText=`Q ${qInRound+1}/5 • Correct ${correct} • Wrong ${wrong}`;
 }
 async function loadFromServer(){
-  try{ const r=await fetch('/api/quiz-load?user_id='+encodeURIComponent(user_id)); const d=await r.json();
-    if(d && d.user_id){ dailyPoints=d.dailyPoints||0; playPoints=d.playPoints||0; points=d.points||0; qIndex=d.qIndex||0; saveLocalOnly(); }
+  try{
+    const r=await fetch('/api/quiz-load?user_id='+encodeURIComponent(user_id)); const d=await r.json();
+    if(d && d.user_id){
+      // FIX: REFRESH NEVER WIPES - take MAX of phone vs server
+      // If you just claimed 200 Daily on phone, server 0 should NOT wipe it. If server has 100k approve, phone 0 should NOT wipe it.
+      dailyPoints = Math.max(dailyPoints, d.dailyPoints||0);
+      playPoints = Math.max(playPoints, d.playPoints||0);
+      points = Math.max(points, d.points||0);
+      qIndex = Math.max(qIndex, d.qIndex||0);
+      saveLocalOnly();
+    }
   }catch(e){}
   serverReady=true; updateUI();
 }
-async function refreshBalance(){ document.getElementById('claimMsg').innerText='🔄 Refreshing from Supabase...'; await loadFromServer(); document.getElementById('claimMsg').innerText='✅ Balance refreshed from Supabase!'; }
+async function refreshBalance(){
+  document.getElementById('claimMsg').innerText='🔄 Refreshing from Supabase...';
+  await loadFromServer();
+  // FIX: after merge, push merged values back so server also has the Daily you claimed
+  save();
+  document.getElementById('claimMsg').innerText='✅ Balance refreshed - Daily + Approve kept!';
+}
 function claimDaily(){
   const today=new Date().toDateString(); if(lastClaim===today){ document.getElementById('claimMsg').innerText='✅ Already claimed today. Come back tomorrow.'; return; }
   dailyPoints+=DAILY; lastClaim=today; save(); document.getElementById('claimMsg').innerText=`✅ +${DAILY} Daily Points claimed!`;
@@ -128,8 +142,7 @@ function makeQ(i){
     {q:'What colour do you get mixing blue + yellow?',a:['Purple','Green','Orange','Pink'],c:1}
   ];
   let b=bank[i%bank.length]; let shift=i%4; let opts=[...b.a]; for(let k=0;k<shift;k++){ opts.push(opts.shift()); }
-  let correctIdx=(b.c-shift+4)%4;
-  return {q:`Q${i+1}: ${b.q}`, opts, correct:correctIdx};
+  let correctIdx=(b.c-shift+4)%4; return {q:`Q${i+1}: ${b.q}`, opts, correct:correctIdx};
 }
 function hasPoints(){ return points>0||playPoints>0||dailyPoints>0; }
 function spendOnWin(){ if(playPoints>=10) playPoints-=10; else if(dailyPoints>=10) dailyPoints-=10; }
@@ -142,7 +155,6 @@ function startQuizAuto(){
   document.getElementById('roundEnd').classList.add('hidden');
   document.getElementById('quizArea').classList.remove('hidden');
   document.getElementById('startBtn').classList.add('hidden');
-  // 2in1 - AD 1: ENTRY AD - once per round, BEFORE Q1
   showEntryAd();
 }
 function beginQuestions(){ showQuestionAuto(); }
@@ -154,8 +166,7 @@ function showQuestionAuto(){
   document.getElementById('qText').innerText=currentQ.q;
   const optsDiv=document.getElementById('opts'); optsDiv.innerHTML=''; document.getElementById('feedback').innerHTML='';
   currentQ.opts.forEach((o,idx)=>{ let b=document.createElement('button'); b.className='opt'; b.innerText=o; b.onclick=()=>answerAuto(idx,b); optsDiv.appendChild(b); });
-  stopTimer();
-  timeLeft=QUESTION_TIME; document.getElementById('timerLabel').innerText='⏱️ '+QUESTION_TIME+'s';
+  stopTimer(); timeLeft=QUESTION_TIME; document.getElementById('timerLabel').innerText='⏱️ '+QUESTION_TIME+'s';
   timer=setInterval(()=>{ if(inAd) return; timeLeft--; document.getElementById('timerLabel').innerText='⏱️ '+timeLeft+'s'; if(timeLeft<=0){ stopTimer(); timeoutAnswer(); } },1000);
   updateUI();
 }
@@ -179,7 +190,6 @@ function endRound(manual){
 }
 let adTimer=null;
 function showEntryAd(){
-  // 2in1 AD 1: ENTRY - only once per round, never twice
   if(entryAdDone) { beginQuestions(); return; }
   adMode='entry';
   document.getElementById('adTitle').innerText='Watch this ad to start the round. Timer starts AFTER this ad.';
@@ -187,24 +197,19 @@ function showEntryAd(){
   showAdOnce(()=>{ entryAdDone=true; beginQuestions(); });
 }
 function showAdAuto(){
-  // 2in1 AD 2: AFTER EACH QUESTION - 1x per Q
   adMode='question';
   document.getElementById('adTitle').innerText='Timer is PAUSED during this ad. Next question starts with fresh 15 sec.';
   document.getElementById('adContinueBtn').innerText='✅ CONTINUE TO NEXT QUESTION →';
   showAdOnce(()=>{ qInRound++; save(); if(qInRound>=5) endRound(false); else showQuestionAuto(); });
 }
 function showAdOnce(onClose){
-  if(adShowing) return; // FIX: never load same ad twice at same time
+  if(adShowing) return;
   adShowing=true; adClosed=false; inAd=true; stopTimer();
   window._adOnClose = onClose;
   document.getElementById('adModal').style.display='block';
   document.getElementById('adStatus').innerText='Ad loading... If no ad, Continue will appear in 3 sec.';
   document.getElementById('adContinueBtn').style.display='none';
-  try{
-    if(window.show && tmaReady){
-      window.show().then(()=>{ closeAdAndNext(); }).catch(e=>{ console.log('tma no fill', e); });
-    }
-  }catch(e){ console.log('TMA error', e); }
+  try{ if(window.show && tmaReady){ window.show().then(()=>{ closeAdAndNext(); }).catch(e=>{ console.log('tma no fill', e); }); } }catch(e){ console.log('TMA error', e); }
   clearTimeout(adTimer);
   adTimer=setTimeout(()=>{ if(adClosed) return; document.getElementById('adStatus').innerText='Thanks! Tap Continue.'; document.getElementById('adContinueBtn').style.display='block'; },3000);
   clearTimeout(window._adAutoNext);
@@ -215,8 +220,7 @@ function closeAdAndNext(){
   if(adClosed) return;
   adClosed=true; adShowing=false; inAd=false;
   clearTimeout(adTimer); clearTimeout(window._adAutoNext); document.getElementById('adModal').style.display='none';
-  const cb = window._adOnClose; window._adOnClose=null;
-  if(cb) cb();
+  const cb = window._adOnClose; window._adOnClose=null; if(cb) cb();
 }
 function updateWithdraw(){
   const m=document.getElementById('wMethod').value; const amt=parseFloat(document.getElementById('wAmount').value)||0;
