@@ -26,8 +26,7 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 <div class="w">🏆 WIN<br><b id="winBal">0</b><br><span class="small" id="winRand">R0.00 - WITHDRAWABLE</span></div>
 </div>
 <button class="bigbtn btn2" onclick="claimDaily()">🎁 CLAIM 200 DAILY FREE</button>
-<button class="bigbtn" onclick="refreshBalance()" style="background:#333;color:#fff;font-size:13px">🔄 REFRESH BALANCE FROM SERVER</button>
-<div class="small" id="claimMsg"></div></div>
+<div class="small" id="claimMsg">✅ Auto-sync ON - no Refresh needed. Go back and come back, balance updates itself.</div></div>
 <div class="card">
 <button class="bigbtn" id="startBtn" onclick="startQuizAuto()">🧠 START QUIZ - PRESS ONCE</button>
 <div id="quizArea" class="hidden">
@@ -52,7 +51,7 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 <div class="card small">✅ WIN: +10 WIN • -10 Play, if none -10 Daily<br>❌ LOSE: -10 Win, if none -10 Play, if none -10 Daily<br>🛑 No points in ALL 3 = Playing STOPS<br>Withdraw WIN ONLY: Min R20 • Max R100 • Data R5 = 1GB TikTok 24h<br>Topup Play: Capitec 1893275807</div>
 <div id="adModal" style="display:none;position:fixed;inset:0;background:#000;z-index:9999;overflow-y:auto;padding:12px;text-align:center">
 <h2 style="margin:8px 0">🎬 ADVERTISEMENT</h2>
-<p style="color:#aaa;font-size:13px" id="adTitle">Timer is PAUSED during this ad. Next question starts with fresh 15 sec.</p>
+<p style="color:#aaa;font-size:13px" id="adTitle">Timer is PAUSED during this ad.</p>
 <div style="background:#111;border-radius:16px;min-height:200px;margin:14px 0;padding:12px">
 <div id="adLoadingText">📺 Loading Rewarded Video...</div>
 <div style="background:#1a2a1a;border:1px solid #00a651;border-radius:12px;padding:14px;margin-top:12px">
@@ -61,30 +60,24 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 <a href="https://t.me/ShayaEarnNetwork" target="_blank" style="color:#FFD700">👉 Join Shaya Earn Network</a>
 </div>
 </div>
-<p id="adStatus" style="color:#FFD700;font-size:13px">Ad loading... If no ad, Continue will appear in 3 sec.</p>
+<p id="adStatus" style="color:#FFD700;font-size:13px">Ad loading...</p>
 <button class="bigbtn" id="adContinueBtn" onclick="closeAdEarly()" style="display:none;background:#00ff88">✅ CONTINUE →</button>
 </div>
 <script>
-let tmaReady = false;
-window.initCdTma?.({ id: '6155603' }).then(show => { window.show = show; tmaReady = true; }).catch(e => console.log('TMA init error', e));
-const tg = window.Telegram?.WebApp; if(tg){ tg.ready(); tg.expand(); }
-const params = new URLSearchParams(location.search);
-const user_id = params.get('user_id') || tg?.initDataUnsafe?.user?.id || 'guest_'+Math.floor(Math.random()*999999);
-const user_name = tg?.initDataUnsafe?.user?.first_name || 'Player';
-const DAILY = 200; const QUESTION_TIME = 15; const FEEDBACK_TIME = 2000;
-let dailyPoints=0, playPoints=0, points=0, qIndex=0, correct=0, wrong=0, qInRound=0, currentQ=null, timer=null, timeLeft=QUESTION_TIME, playing=false, lastClaim='';
-let inAd=false; let serverReady=false; let adShowing=false; let adClosed=false; let answered=false; let adMode='question'; let entryAdDone=false;
+let tmaReady=false;
+window.initCdTma?.({id:'6155603'}).then(s=>{window.show=s; tmaReady=true;}).catch(e=>console.log(e));
+const tg=window.Telegram?.WebApp; if(tg){tg.ready(); tg.expand();}
+const params=new URLSearchParams(location.search);
+const user_id=params.get('user_id')||tg?.initDataUnsafe?.user?.id||'guest_'+Math.floor(Math.random()*999999);
+const user_name=tg?.initDataUnsafe?.user?.first_name||'Player';
+const DAILY=200, QUESTION_TIME=15, FEEDBACK_TIME=2000;
+let dailyPoints=0, playPoints=0, points=0, qIndex=0, correct=0, wrong=0, qInRound=0, currentQ=null, timer=null, timeLeft=15, playing=false, lastClaim='';
+let inAd=false, serverReady=false, adShowing=false, adClosed=false, answered=false, entryAdDone=false;
 function save(){
   if(!serverReady) return;
   localStorage.setItem('shaya_quiz_'+user_id, JSON.stringify({dailyPoints,playPoints,points,qIndex,correct,wrong,lastClaim})); updateUI();
-  // FIX: server now returns corrected values if phone was stale - apply them
   fetch('/api/quiz-sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id,name:user_name,points,playPoints,dailyPoints,qIndex,correct,wrong})})
-  .then(r=>r.json()).then(d=>{
-    if(d && d.user && d.corrected){
-      dailyPoints=d.user.dailyPoints||0; playPoints=d.user.playPoints||0; points=d.user.points||0;
-      saveLocalOnly(); document.getElementById('claimMsg').innerText='⚠️ Stale phone corrected from Supabase - approve restored!';
-    }
-  }).catch(()=>{});
+  .then(r=>r.json()).then(d=>{ if(d&&d.user&&d.corrected){ dailyPoints=d.user.dailyPoints||0; playPoints=d.user.playPoints||0; points=d.user.points||0; saveLocalOnly(); } }).catch(()=>{});
 }
 function saveLocalOnly(){ localStorage.setItem('shaya_quiz_'+user_id, JSON.stringify({dailyPoints,playPoints,points,qIndex,correct,wrong,lastClaim})); updateUI(); }
 function updateUI(){
@@ -93,31 +86,26 @@ function updateUI(){
   document.getElementById('userLine').innerText=user_name+' • ID: '+user_id;
   document.getElementById('progressLabel').innerText=`Q ${qInRound+1}/5 • Correct ${correct} • Wrong ${wrong}`;
 }
+// BUG FIX: NO REFRESH BUTTON - auto-load on open + on return, and NEVER wipe - MAX merge
 async function loadFromServer(){
   try{
     const r=await fetch('/api/quiz-load?user_id='+encodeURIComponent(user_id)); const d=await r.json();
     if(d && d.user_id){
-      // FIX: REFRESH NEVER WIPES - take MAX of phone vs server
-      // If you just claimed 200 Daily on phone, server 0 should NOT wipe it. If server has 100k approve, phone 0 should NOT wipe it.
-      dailyPoints = Math.max(dailyPoints, d.dailyPoints||0);
-      playPoints = Math.max(playPoints, d.playPoints||0);
-      points = Math.max(points, d.points||0);
-      qIndex = Math.max(qIndex, d.qIndex||0);
+      dailyPoints=Math.max(dailyPoints, d.dailyPoints||0);
+      playPoints=Math.max(playPoints, d.playPoints||0);
+      points=Math.max(points, d.points||0);
+      qIndex=Math.max(qIndex, d.qIndex||0);
       saveLocalOnly();
     }
   }catch(e){}
   serverReady=true; updateUI();
 }
-async function refreshBalance(){
-  document.getElementById('claimMsg').innerText='🔄 Refreshing from Supabase...';
-  await loadFromServer();
-  // FIX: after merge, push merged values back so server also has the Daily you claimed
-  save();
-  document.getElementById('claimMsg').innerText='✅ Balance refreshed - Daily + Approve kept!';
-}
+// BUG FIX: When you go back to bot and come back, auto-reload - no Refresh tap needed
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && !playing) loadFromServer(); });
+window.addEventListener('focus', ()=>{ if(!playing) loadFromServer(); });
 function claimDaily(){
-  const today=new Date().toDateString(); if(lastClaim===today){ document.getElementById('claimMsg').innerText='✅ Already claimed today. Come back tomorrow.'; return; }
-  dailyPoints+=DAILY; lastClaim=today; save(); document.getElementById('claimMsg').innerText=`✅ +${DAILY} Daily Points claimed!`;
+  const today=new Date().toDateString(); if(lastClaim===today){ document.getElementById('claimMsg').innerText='✅ Already claimed today.'; return; }
+  dailyPoints+=DAILY; lastClaim=today; save(); document.getElementById('claimMsg').innerText=`✅ +${DAILY} Daily claimed!`;
 }
 const SCENERY=[
   {img:'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=800&q=80',cap:'🦁 Kruger National Park'},
@@ -127,7 +115,7 @@ const SCENERY=[
   {img:'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&q=80',cap:'🌲 Knysna Forest'},
   {img:'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=800&q=80',cap:'🏞️ Blyde River Canyon'}
 ];
-function setScenery(i){ let s=SCENERY[i%SCENERY.length]; let img=document.getElementById('sceneryImg'); img.onerror=()=>{ img.src='https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=800&q=80'; }; img.src=s.img; document.getElementById('sceneryCap').innerText=s.cap; }
+function setScenery(i){ let s=SCENERY[i%SCENERY.length]; let img=document.getElementById('sceneryImg'); img.onerror=()=>{img.src='https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=800&q=80';}; img.src=s.img; document.getElementById('sceneryCap').innerText=s.cap; }
 function makeQ(i){
   const bank=[
     {q:'What is the capital of South Africa?',a:['Cape Town','Pretoria','Durban','Johannesburg'],c:1},
@@ -141,25 +129,24 @@ function makeQ(i){
     {q:'Which city is the Mother City?',a:['Durban','Cape Town','Pretoria','Polokwane'],c:1},
     {q:'What colour do you get mixing blue + yellow?',a:['Purple','Green','Orange','Pink'],c:1}
   ];
-  let b=bank[i%bank.length]; let shift=i%4; let opts=[...b.a]; for(let k=0;k<shift;k++){ opts.push(opts.shift()); }
-  let correctIdx=(b.c-shift+4)%4; return {q:`Q${i+1}: ${b.q}`, opts, correct:correctIdx};
+  let b=bank[i%bank.length]; let shift=i%4; let opts=[...b.a]; for(let k=0;k<shift;k++){opts.push(opts.shift());}
+  return {q:`Q${i+1}: ${b.q}`, opts, correct:(b.c-shift+4)%4};
 }
 function hasPoints(){ return points>0||playPoints>0||dailyPoints>0; }
 function spendOnWin(){ if(playPoints>=10) playPoints-=10; else if(dailyPoints>=10) dailyPoints-=10; }
 function spendOnLose(){ if(points>=10) points-=10; else if(playPoints>=10) playPoints-=10; else if(dailyPoints>=10) dailyPoints-=10; }
 function stopTimer(){ clearInterval(timer); timer=null; }
 function startQuizAuto(){
-  if(playing) return;
-  if(!hasPoints()){ alert('No points left in Daily, Play AND Win. Claim Daily 200 or Topup Play to continue.'); return; }
+  if(playing) return; // BUG FIX: double START blocked
+  if(!hasPoints()){ alert('No points left. Claim Daily 200 or Topup Play.'); return; }
   playing=true; qInRound=0; correct=0; wrong=0; entryAdDone=false;
   document.getElementById('roundEnd').classList.add('hidden');
   document.getElementById('quizArea').classList.remove('hidden');
   document.getElementById('startBtn').classList.add('hidden');
   showEntryAd();
 }
-function beginQuestions(){ showQuestionAuto(); }
 function showQuestionAuto(){
-  if(qInRound>=5){ endRound(false); return; }
+  if(qInRound>=5){ endRound(); return; }
   inAd=false; adShowing=false; adClosed=false; answered=false;
   setScenery(qIndex); currentQ=makeQ(qIndex);
   document.getElementById('roundLabel').innerText='Round Question '+(qInRound+1)+'/5';
@@ -171,7 +158,7 @@ function showQuestionAuto(){
   updateUI();
 }
 function answerAuto(idx, btn){
-  if(answered) return; answered=true; stopTimer();
+  if(answered) return; answered=true; stopTimer(); // BUG FIX: double-tap blocked, timer stops instantly
   document.querySelectorAll('.opt').forEach(b=>b.onclick=null);
   if(idx===currentQ.correct){ points+=10; correct++; spendOnWin(); document.getElementById('feedback').innerHTML='✅ CORRECT! +10 WIN • -10 Play/Daily'; btn.classList.add('correct'); }
   else { wrong++; spendOnLose(); document.getElementById('feedback').innerHTML='❌ WRONG! -10 Win/Play/Daily. Correct: '+currentQ.opts[currentQ.correct]; btn.classList.add('wrong'); }
@@ -183,33 +170,31 @@ function timeoutAnswer(){
   wrong++; spendOnLose(); document.getElementById('feedback').innerHTML='⏱️ TIME OUT! -10 Win/Play/Daily. Correct: '+currentQ.opts[currentQ.correct];
   qIndex++; save(); setTimeout(()=>{ showAdAuto(); },FEEDBACK_TIME);
 }
-function endRound(manual){
+function endRound(){
   playing=false; stopTimer(); document.getElementById('quizArea').classList.add('hidden'); document.getElementById('roundEnd').classList.remove('hidden');
   document.getElementById('roundResult').innerText=`Round Done! Correct: ${correct} • Wrong: ${wrong} • WIN: ${points} (R${(points/1000).toFixed(2)})`;
   save(); loadLB();
 }
 let adTimer=null;
 function showEntryAd(){
-  if(entryAdDone) { beginQuestions(); return; }
-  adMode='entry';
+  if(entryAdDone){ showQuestionAuto(); return; }
   document.getElementById('adTitle').innerText='Watch this ad to start the round. Timer starts AFTER this ad.';
   document.getElementById('adContinueBtn').innerText='✅ CONTINUE TO QUIZ →';
-  showAdOnce(()=>{ entryAdDone=true; beginQuestions(); });
+  showAdOnce(()=>{ entryAdDone=true; showQuestionAuto(); });
 }
 function showAdAuto(){
-  adMode='question';
   document.getElementById('adTitle').innerText='Timer is PAUSED during this ad. Next question starts with fresh 15 sec.';
   document.getElementById('adContinueBtn').innerText='✅ CONTINUE TO NEXT QUESTION →';
-  showAdOnce(()=>{ qInRound++; save(); if(qInRound>=5) endRound(false); else showQuestionAuto(); });
+  showAdOnce(()=>{ qInRound++; save(); if(qInRound>=5) endRound(); else showQuestionAuto(); });
 }
 function showAdOnce(onClose){
-  if(adShowing) return;
+  if(adShowing) return; // BUG FIX: ad loads once per placement, never twice
   adShowing=true; adClosed=false; inAd=true; stopTimer();
-  window._adOnClose = onClose;
+  window._adOnClose=onClose;
   document.getElementById('adModal').style.display='block';
   document.getElementById('adStatus').innerText='Ad loading... If no ad, Continue will appear in 3 sec.';
   document.getElementById('adContinueBtn').style.display='none';
-  try{ if(window.show && tmaReady){ window.show().then(()=>{ closeAdAndNext(); }).catch(e=>{ console.log('tma no fill', e); }); } }catch(e){ console.log('TMA error', e); }
+  try{ if(window.show && tmaReady){ window.show().then(()=>{ closeAdAndNext(); }).catch(e=>console.log(e)); } }catch(e){ console.log(e); }
   clearTimeout(adTimer);
   adTimer=setTimeout(()=>{ if(adClosed) return; document.getElementById('adStatus').innerText='Thanks! Tap Continue.'; document.getElementById('adContinueBtn').style.display='block'; },3000);
   clearTimeout(window._adAutoNext);
@@ -220,22 +205,21 @@ function closeAdAndNext(){
   if(adClosed) return;
   adClosed=true; adShowing=false; inAd=false;
   clearTimeout(adTimer); clearTimeout(window._adAutoNext); document.getElementById('adModal').style.display='none';
-  const cb = window._adOnClose; window._adOnClose=null; if(cb) cb();
+  const cb=window._adOnClose; window._adOnClose=null; if(cb) cb();
 }
 function updateWithdraw(){
   const m=document.getElementById('wMethod').value; const amt=parseFloat(document.getElementById('wAmount').value)||0;
-  if(m.includes('Data')){ document.getElementById('wInfo').innerText='Data: Fixed R5 = 5,000 WIN Points = 1GB TikTok 24h'; }
-  else { document.getElementById('wInfo').innerText=`You will use ${amt*1000} WIN Points for R${amt}`; }
+  document.getElementById('wInfo').innerText = m.includes('Data') ? 'Data: Fixed R5 = 5,000 WIN Points = 1GB TikTok 24h' : `You will use ${amt*1000} WIN Points for R${amt}`;
 }
 async function doWithdraw(){
   const method=document.getElementById('wMethod').value; const wallet=document.getElementById('wWallet').value.trim();
   let rand=parseFloat(document.getElementById('wAmount').value)||0; let pts=0;
   if(method.includes('Data')){ rand=5; pts=5000; } else { if(rand<20||rand>100){ document.getElementById('wMsg').innerText='❌ R20 - R100 only'; return; } pts=rand*1000; }
   if(!wallet){ document.getElementById('wMsg').innerText='❌ Enter Capitec / Phone'; return; }
-  if(points<pts){ document.getElementById('wMsg').innerText='❌ Not enough WIN Points. You have '+points+' WIN. Daily + Play cannot be withdrawn.'; return; }
+  if(points<pts){ document.getElementById('wMsg').innerText='❌ Not enough WIN. You have '+points+' WIN.'; return; }
   const r=await fetch('/api/quiz-withdraw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id,name:user_name,method,wallet,rand,points:pts})});
   const d=await r.json(); if(d.error){ document.getElementById('wMsg').innerText='❌ '+d.error; return; }
-  points-=pts; save(); document.getElementById('wMsg').innerText='✅ Withdraw sent! '+pts+' WIN = R'+rand+'. Admin will pay you.';
+  points=d.remaining!==undefined?d.remaining:points-pts; save(); document.getElementById('wMsg').innerText='✅ Withdraw sent! '+pts+' WIN = R'+rand+'. Admin will pay you.';
 }
 async function doTopup(){
   const v=document.getElementById('tPackage').value.split('|'); const pts=parseInt(v[0]); const price=v[1]; const proof=document.getElementById('tProof').value.trim();
@@ -245,7 +229,7 @@ async function doTopup(){
 }
 async function loadLB(){
   try{ const r=await fetch('/api/quiz-leaderboard'); const list=await r.json();
-    if(!list || list.length===0){ document.getElementById('lb').innerHTML='<div class="small">No scores yet - play a round!</div>'; return; }
+    if(!list||!list.length){ document.getElementById('lb').innerHTML='<div class="small">No scores yet - play a round!</div>'; return; }
     document.getElementById('lb').innerHTML='<table><tr><th>#</th><th>Name</th><th>WIN</th><th>R</th></tr>'+list.slice(0,10).map((p,i)=>`<tr><td>${i+1}</td><td>${p.name||'Player'}</td><td>${p.points}</td><td>R${(p.points/1000).toFixed(2)}</td></tr>`).join('')+'</table>';
   }catch(e){ document.getElementById('lb').innerText='No scores yet'; }
 }
