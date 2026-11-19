@@ -18,7 +18,7 @@ if (!SUPABASE_URL || !SUPABASE_KEY) console.log('⚠️ SUPABASE_URL / SUPABASE_
 
 const bot = TOKEN ? new TelegramBot(TOKEN, { polling: true }) : null;
 
-// ---------- SUPABASE HELPERS ----------
+// ---------- SUPABASE ----------
 async function sb(table, method, body, query=''){
   if(!SUPABASE_URL || !SUPABASE_KEY) return null;
   try{
@@ -64,10 +64,27 @@ async function saveUserToDB(u){
   }
 }
 
+// FIX: Approve logic in ONE place, used by both button + command - like Shaya Watch
+async function approveTopup(adminChatId, targetId, pts, topupId){
+  let u = await getUserFromDB(String(targetId), '');
+  u.playPoints += pts;
+  await saveUserToDB(u);
+  if(SUPABASE_URL && SUPABASE_KEY && topupId){
+    await sb('quiz_topups','PATCH', { status:'approved' }, `?id=eq.${topupId}`);
+  }
+  if(bot && adminChatId){
+    bot.sendMessage(adminChatId, `✅ APPROVED - Like Shaya Watch\n👤 ${u.name} (${targetId})\n💰 +${pts} PLAY\n🎮 New PLAY: ${u.playPoints}\n🏆 WIN: ${u.points} | 🎁 DAILY: ${u.dailyPoints}\n✅ Saved to Supabase`).catch(()=>{});
+  }
+  try{ await bot.sendMessage(String(targetId), `✅ TOPUP APPROVED! +${pts} PLAY points added.\n🎮 New PLAY: ${u.playPoints}\nClose and reopen Quiz to see it - or tap REFRESH.`); }catch(e){}
+  return u;
+}
+
 // ---------- QUIZ API ----------
 app.post('/api/quiz-sync', async (req,res)=>{
   const { user_id, name, points, playPoints, dailyPoints, qIndex, correct, wrong } = req.body||{};
   if(!user_id) return res.json({ok:false});
+  // FIX: Server wins on load, but sync still saves gameplay. To stop stale phone wiping approve,
+  // frontend now loads server FIRST before any save. This endpoint just saves what frontend sends.
   let u = await getUserFromDB(String(user_id), name);
   if(points!==undefined) u.points = points;
   if(playPoints!==undefined) u.playPoints = playPoints;
@@ -105,7 +122,13 @@ app.post('/api/quiz-withdraw', async (req,res)=>{
     await sb('quiz_withdraws','POST', { user_id:String(user_id), name:u.name, method, wallet, rand:r, points:pts, status:'pending' });
   }
   if(bot){
-    bot.sendMessage(ADMIN_ID, `💸 NEW WITHDRAW - QUIZ\n👤 ${u.name} (${user_id})\n💰 R${r} = ${pts} WIN\n🏦 ${method} - ${wallet}`).catch(()=>{});
+    // Withdraw also with buttons like Shaya Watch
+    bot.sendMessage(ADMIN_ID, `💸 NEW WITHDRAW - QUIZ\n👤 ${u.name} (${user_id})\n💰 R${r} = ${pts} WIN\n🏦 ${method} - ${wallet}`, {
+      reply_markup: { inline_keyboard: [
+        [{ text:'✅ PAID', callback_data:`withdraw_paid:${user_id}:${pts}` }],
+        [{ text:'❌ REJECT', callback_data:`withdraw_reject:${user_id}:${pts}` }]
+      ]}
+    }).catch(()=>{});
   }
   res.json({ok:true});
 });
@@ -113,11 +136,19 @@ app.post('/api/quiz-withdraw', async (req,res)=>{
 app.post('/api/quiz-topup', async (req,res)=>{
   const { user_id, name, points, price, proof } = req.body||{};
   if(!proof) return res.json({msg:'Paste proof first'});
+  let topupId = null;
   if(SUPABASE_URL && SUPABASE_KEY){
-    await sb('quiz_topups','POST', { user_id:String(user_id), name:name||'Player', points, price, proof, status:'pending' });
+    const created = await sb('quiz_topups','POST', { user_id:String(user_id), name:name||'Player', points, price, proof, status:'pending' });
+    if(Array.isArray(created) && created[0]) topupId = created[0].id;
   }
   if(bot){
-    bot.sendMessage(ADMIN_ID, `🏦 NEW TOPUP - QUIZ\n👤 ${name} (${user_id})\n💰 R${price} = ${points} PLAY\n🧾 Proof: ${proof}\n\nApprove with: /approve ${user_id} ${points}`).catch(()=>{});
+    // LIKE SHAYA WATCH: Approve / Reject BUTTONS, no typing /approve
+    bot.sendMessage(ADMIN_ID, `🏦 NEW TOPUP - QUIZ\n👤 ${name} (${user_id})\n💰 R${price} = ${points} PLAY\n🧾 Proof: ${proof}\n\nTap APPROVE to add PLAY instantly:`, {
+      reply_markup: { inline_keyboard: [
+        [{ text:`✅ APPROVE +${points} PLAY`, callback_data:`topup_approve:${user_id}:${points}:${topupId||0}` }],
+        [{ text:'❌ REJECT', callback_data:`topup_reject:${user_id}:${points}:${topupId||0}` }]
+      ]}
+    }).catch(()=>{});
   }
   res.json({msg:'Topup proof sent! Admin will approve and add your PLAY points.'});
 });
@@ -139,14 +170,54 @@ if(bot){
     });
   });
 
+  // Old command still works IF you type full: /approve 1159481047 100000
   bot.onText(/\/approve (\d+) (\d+)/, async (msg, match)=>{
     if(String(msg.from.id) !== String(ADMIN_ID)) return;
     const target = match[1]; const pts = parseInt(match[2]);
-    let u = await getUserFromDB(target, '');
-    u.playPoints += pts;
-    await saveUserToDB(u);
-    bot.sendMessage(msg.chat.id, `✅ Approved ${pts} PLAY to ${u.name} (${target}). New PLAY: ${u.playPoints} (Saved to Supabase)`);
-    try{ await bot.sendMessage(target, `✅ TOPUP APPROVED! +${pts} PLAY points added. Go play Quiz now!`); }catch(e){}
+    await approveTopup(msg.chat.id, target, pts, null);
+  });
+
+  // FIX: If someone taps blue /approve alone, tell them - don't stay silent
+  bot.onText(/^\/approve$/, async (msg)=>{
+    if(String(msg.from.id) !== String(ADMIN_ID)) return;
+    bot.sendMessage(msg.chat.id, `⚠️ You tapped /approve alone - no numbers came through.\n\nUse the ✅ APPROVE button on the topup message, OR type full:\n/approve 1159481047 100000`);
+  });
+
+  // LIKE SHAYA WATCH: Button callbacks
+  bot.on('callback_query', async (q)=>{
+    try{
+      const data = q.data || '';
+      const fromId = String(q.from.id);
+      if(fromId !== String(ADMIN_ID)){
+        bot.answerCallbackQuery(q.id, { text:'Only admin can approve', show_alert:true }).catch(()=>{});
+        return;
+      }
+      if(data.startsWith('topup_approve:')){
+        const parts = data.split(':'); // topup_approve:user:points:topupId
+        const target = parts[1]; const pts = parseInt(parts[2]); const topupId = parts[3]==='0'?null:parts[3];
+        await approveTopup(q.message.chat.id, target, pts, topupId);
+        // Update the admin message to show DONE, like Shaya Watch
+        try{ await bot.editMessageText(`✅ APPROVED\n👤 ${target}\n💰 +${pts} PLAY added - Saved to Supabase`, { chat_id: q.message.chat.id, message_id: q.message.message_id }); }catch(e){}
+        bot.answerCallbackQuery(q.id, { text:'✅ Approved!' }).catch(()=>{});
+      }
+      if(data.startsWith('topup_reject:')){
+        const parts = data.split(':');
+        const target = parts[1]; const pts = parseInt(parts[2]); const topupId = parts[3]==='0'?null:parts[3];
+        if(SUPABASE_URL && SUPABASE_KEY && topupId) await sb('quiz_topups','PATCH', { status:'rejected' }, `?id=eq.${topupId}`);
+        try{ await bot.editMessageText(`❌ REJECTED\n👤 ${target}\n💰 ${pts} PLAY NOT added`, { chat_id: q.message.chat.id, message_id: q.message.message_id }); }catch(e){}
+        try{ await bot.sendMessage(String(target), `❌ Your topup was REJECTED. Contact admin.`); }catch(e){}
+        bot.answerCallbackQuery(q.id, { text:'Rejected' }).catch(()=>{});
+      }
+      if(data.startsWith('withdraw_paid:')){
+        const parts = data.split(':');
+        try{ await bot.editMessageText(`✅ WITHDRAW PAID - ${parts[1]} - ${parts[2]} WIN`, { chat_id: q.message.chat.id, message_id: q.message.message_id }); }catch(e){}
+        bot.answerCallbackQuery(q.id, { text:'Marked as Paid' }).catch(()=>{});
+      }
+      if(data.startsWith('withdraw_reject:')){
+        try{ await bot.editMessageText(`❌ WITHDRAW REJECTED`, { chat_id: q.message.chat.id, message_id: q.message.message_id }); }catch(e){}
+        bot.answerCallbackQuery(q.id, { text:'Rejected' }).catch(()=>{});
+      }
+    }catch(e){ console.log('callback error', e.message); }
   });
 
   bot.onText(/\/balance/, async (msg)=>{
@@ -157,7 +228,6 @@ if(bot){
   bot.on('polling_error', (e)=> console.log('Polling:', e.message));
 }
 
-// FIX: Root link now shows GAME, not status text
 app.get('/', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'quiz.html')));
 app.get('/health', (req,res)=> res.json({ok:true, quiz:QUIZ_URL, spot:'6155603', supabase: !!SUPABASE_URL}));
 
