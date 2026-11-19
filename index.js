@@ -157,7 +157,8 @@ if(bot){
   bot.on('polling_error', (e)=> console.log('Polling:', e.message));
 }
 
-app.get('/', (req,res)=> res.send('SHAYA QUIZ BOT LIVE - Supabase: ' + (SUPABASE_URL ? 'ON' : 'OFF - memory') + ' - ' + QUIZ_URL));
+// FIX: Root link now shows GAME, not status text
+app.get('/', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'quiz.html')));
 app.get('/health', (req,res)=> res.json({ok:true, quiz:QUIZ_URL, spot:'6155603', supabase: !!SUPABASE_URL}));
 
 const PORT = process.env.PORT || 3000;
