@@ -1,6 +1,6 @@
 // ===== SHAYA QUIZ BOT - ONLY ONE index.js - QUIZ ONLY =====
 // Bot: @ShayaQuizBot | OnclickA Zone 472905 | Banner 6155495 | Popunder 6155496
-// Capitec 1893275807 | Daily 100 | Win ONLY withdraw Min R20 Max R100 | Data R5 = 1GB TikTok 24h
+// Capitec 1893275807 | Daily 200 | Win ONLY withdraw Min R20 Max R100 | Data R5 = 1GB TikTok 24h
 const express = require('express');
 const path = require('path');
 const { Telegraf } = require('telegraf');
