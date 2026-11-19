@@ -2,7 +2,7 @@
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SHAYA QUIZ BOT - Play Win Withdraw</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<!-- ONCLICKA TMA REWARDED VIDEO - Spot 6155603 - Site 473230 - DO NOT EDIT -->
+<!-- ONCLICKA TMA REWARDED VIDEO - Spot 6155603 - Site 473230 -->
 <script src="https://js.onclckvd.com/in-stream-ad-admanager/tma.js"></script>
 <style>
 *{box-sizing:border-box} body{margin:0;font-family:Arial,sans-serif;background:#0b0f14;color:#fff}
@@ -92,7 +92,7 @@ function updateUI(){
 function loadLocal(){ try{ const s=JSON.parse(localStorage.getItem('shaya_quiz_'+user_id)||'{}'); if(s.points!==undefined){ dailyPoints=s.dailyPoints||0; playPoints=s.playPoints||0; points=s.points||0; qIndex=s.qIndex||0; correct=s.correct||0; wrong=s.wrong||0; lastClaim=s.lastClaim||''; } }catch(e){} updateUI(); }
 async function loadFromServer(){
   try{ const r=await fetch('/api/quiz-load?user_id='+encodeURIComponent(user_id)); const d=await r.json();
-    if(d && (d.points||d.playPoints||d.dailyPoints)){ dailyPoints=d.dailyPoints||0; playPoints=d.playPoints||0; points=d.points||0; qIndex=d.qIndex||0; correct=d.correct||0; wrong=d.wrong||0; save(); }
+    if(d && (d.points!==undefined||d.playPoints!==undefined||d.dailyPoints!==undefined)){ dailyPoints=d.dailyPoints||0; playPoints=d.playPoints||0; points=d.points||0; qIndex=d.qIndex||0; correct=d.correct||0; wrong=d.wrong||0; save(); }
   }catch(e){}
 }
 function claimDaily(){
