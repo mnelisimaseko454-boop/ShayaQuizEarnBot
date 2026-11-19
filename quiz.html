@@ -16,7 +16,7 @@
 <div style="margin-top:8px;color:#aaa;font-size:13px" id="stats">Q: 0/10000</div>
 <div style="margin-top:8px"><span class="badge" id="diffBadge">HARDEST</span> <span class="badge" id="catBadge">General</span> <span class="badge" id="qNum">Round 1 • Q 1/5</span></div>
 <div class="bar"><div id="prog" style="width:0%"></div></div>
-<button class="bigbtn" id="claimBtn" onclick="claimDaily()" style="display:none">🎁 CLAIM 100 DAILY POINTS</button>
+<button class="bigbtn" id="claimBtn" onclick="claimDaily()" style="display:none">🎁 CLAIM 200 DAILY POINTS</button>
 <button class="bigbtn" onclick="showTopup()">🏦 TOPUP PLAY POINTS — Capitec 1893275807</button>
 <button class="bigbtn" style="background:#25D366" onclick="showWithdraw()">💸 WITHDRAW WIN ONLY — Min R20 • Max R100</button>
 <button class="bigbtn" style="background:#7b61ff;color:#fff" onclick="toggleLeader()">🏆 LEADERBOARD — TOP 20 WIN POINTS</button></div>
@@ -75,7 +75,7 @@ function claimDaily(){
   dailyPoints += 100;
   localStorage.setItem('quiz_daily_date_'+userId, today);
   document.getElementById('claimBtn').style.display='none'; save(); updateUI();
-  alert('🎁 +100 Daily Points! NOT withdrawable.');
+  alert('🎁 +200 Daily Points! NOT withdrawable.');
 }
 function deductForWin(){ if(playPoints>=10){ playPoints-=10; return 'Play'; } if(dailyPoints>=10){ dailyPoints-=10; return 'Daily'; } return null; }
 function deductForLose(){ if(winPoints>=10){ winPoints-=10; return 'Win'; } if(playPoints>=10){ playPoints-=10; return 'Play'; } if(dailyPoints>=10){ dailyPoints-=10; return 'Daily'; } return null; }
