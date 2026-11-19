@@ -126,7 +126,7 @@ if(bot){
 📦 *5 Questions = 1 Round* - Press START Once
 
 *3 WALLETS:*
-🎁 *DAILY:* 100 / Day FREE - NOT Withdrawable
+🎁 *DAILY:* 200 / Day FREE - NOT Withdrawable
 🎮 *PLAY:* Topup Only - NOT Withdrawable
 🏆 *WIN:* Withdrawable ONLY
 
