@@ -24,6 +24,7 @@ async function sb(table, method, body, query=''){
   }catch(e){ console.log('Supabase error', e.message); return null; }
 }
 let memUsers = {};
+let linkCodes = {}; // SYNC: code -> { telegramId, expires }
 async function getUserFromDB(id, name){
   if(SUPABASE_URL && SUPABASE_KEY){
     const rows = await sb('quiz_users','GET',null,`?user_id=eq.${encodeURIComponent(id)}&select=*`);
@@ -48,11 +49,45 @@ async function approveTopup(adminChatId, targetId, pts, topupId){
   u.playPoints += pts;
   await saveUserToDB(u);
   if(SUPABASE_URL && SUPABASE_KEY && topupId) await sb('quiz_topups','PATCH', { status:'approved' }, `?id=eq.${topupId}`);
-  if(bot && adminChatId) bot.sendMessage(adminChatId, `✅ APPROVED\n👤 ${u.name} (${targetId})\n💰 +${pts} PLAY\n🎮 New PLAY: ${u.playPoints}\n🏆 WIN: ${u.points} | 🎁 DAILY: ${u.dailyPoints}`).catch(()=>{});
-  try{ await bot.sendMessage(String(targetId), `✅ TOPUP APPROVED! +${pts} PLAY\n🎮 New PLAY: ${u.playPoints}\nGo back to Quiz - it auto-updates, no Refresh needed.`); }catch(e){}
+  if(bot && adminChatId) bot.sendMessage(adminChatId, `✅ APPROVED\n👤 ${u.name} (${targetId})\n💰 +${pts} PLAY\n🎮 New PLAY: ${u.playPoints}`).catch(()=>{});
+  try{ await bot.sendMessage(String(targetId), `✅ TOPUP APPROVED! +${pts} PLAY\n🎮 New PLAY: ${u.playPoints}\nCheck Bot AND Browser - both synced now.`); }catch(e){}
   return u;
 }
-// BUG FIX: Stale tab can never wipe approve/daily - drop >50 is rejected, server wins
+// ===== SYNC BETWEEN BOT AND BROWSER =====
+// Bot creates code, Browser claims it -> Browser becomes same Telegram ID
+app.post('/api/link-create', async (req,res)=>{
+  const { user_id } = req.body||{};
+  if(!user_id) return res.json({error:'No user_id'});
+  const code = String(Math.floor(100000+Math.random()*899999));
+  linkCodes[code] = { telegramId: String(user_id), expires: Date.now()+10*60*1000 };
+  // Also save to Supabase if available so it survives restart
+  if(SUPABASE_URL && SUPABASE_KEY) await sb('quiz_links','POST', { code, user_id:String(user_id), expires_at:new Date(Date.now()+10*60*1000).toISOString() });
+  res.json({ok:true, code});
+});
+app.post('/api/link-claim', async (req,res)=>{
+  const { code, browser_id } = req.body||{};
+  if(!code) return res.json({error:'Enter code'});
+  let entry = linkCodes[String(code).trim()];
+  // Try Supabase if not in memory (Render restarted)
+  if(!entry && SUPABASE_URL && SUPABASE_KEY){
+    const rows = await sb('quiz_links','GET',null,`?code=eq.${encodeURIComponent(String(code).trim())}&select=*`);
+    if(Array.isArray(rows) && rows.length>0) entry = { telegramId: rows[0].user_id, expires: new Date(rows[0].expires_at).getTime() };
+  }
+  if(!entry) return res.json({error:'Code not found. In Bot send /link again.'});
+  if(Date.now() > entry.expires) return res.json({error:'Code expired (10 min). Send /link again.'});
+  // SYNC: Merge browser guest balance into Telegram account, then browser uses Telegram ID
+  let telegramUser = await getUserFromDB(entry.telegramId, '');
+  let browserUser = await getUserFromDB(String(browser_id||''), '');
+  // Keep the HIGHER of each - so nothing is lost in either place
+  telegramUser.points = Math.max(telegramUser.points, browserUser.points);
+  telegramUser.playPoints = Math.max(telegramUser.playPoints, browserUser.playPoints);
+  telegramUser.dailyPoints = Math.max(telegramUser.dailyPoints, browserUser.dailyPoints);
+  telegramUser.qIndex = Math.max(telegramUser.qIndex, browserUser.qIndex);
+  await saveUserToDB(telegramUser);
+  delete linkCodes[String(code).trim()];
+  if(SUPABASE_URL && SUPABASE_KEY) await sb('quiz_links','DELETE',null,`?code=eq.${encodeURIComponent(String(code).trim())}`);
+  res.json({ok:true, telegramId: entry.telegramId, user: telegramUser});
+});
 app.post('/api/quiz-sync', async (req,res)=>{
   const { user_id, name, points, playPoints, dailyPoints, qIndex, correct, wrong } = req.body||{};
   if(!user_id) return res.json({ok:false});
@@ -82,11 +117,10 @@ app.post('/api/quiz-withdraw', async (req,res)=>{
   let u = await getUserFromDB(String(user_id), name);
   let r = Number(rand)||0; let pts = Number(points)||0;
   if(method && method.includes('Data')){ r=5; pts=5000; } else { if(r<20 || r>100) return res.json({error:'R20 - R100 only'}); pts = r*1000; }
-  // BUG FIX: WIN ONLY - server re-checks, phone cannot cheat with Daily/Play
   if(u.points < pts) return res.json({error:'Not enough WIN Points'});
   u.points -= pts; await saveUserToDB(u);
   if(SUPABASE_URL && SUPABASE_KEY) await sb('quiz_withdraws','POST', { user_id:String(user_id), name:u.name, method, wallet, rand:r, points:pts, status:'pending' });
-  if(bot) bot.sendMessage(ADMIN_ID, `💸 NEW WITHDRAW - QUIZ\n👤 ${u.name} (${user_id})\n💰 R${r} = ${pts} WIN\n🏦 ${method} - ${wallet}\n🏆 Remaining WIN: ${u.points}`, {
+  if(bot) bot.sendMessage(ADMIN_ID, `💸 NEW WITHDRAW - QUIZ\n👤 ${u.name} (${user_id})\n💰 R${r} = ${pts} WIN\n🏦 ${method} - ${wallet}`, {
     reply_markup: { inline_keyboard: [[{ text:'✅ PAID', callback_data:`withdraw_paid:${user_id}:${pts}` }],[{ text:'❌ REJECT', callback_data:`withdraw_reject:${user_id}:${pts}` }]] }
   }).catch(()=>{});
   res.json({ok:true, remaining:u.points});
@@ -99,7 +133,7 @@ app.post('/api/quiz-topup', async (req,res)=>{
     const created = await sb('quiz_topups','POST', { user_id:String(user_id), name:name||'Player', points, price, proof, status:'pending' });
     if(Array.isArray(created) && created[0]) topupId = created[0].id;
   }
-  if(bot) bot.sendMessage(ADMIN_ID, `🏦 NEW TOPUP - QUIZ\n👤 ${name} (${user_id})\n💰 R${price} = ${points} PLAY\n🧾 Proof: ${proof}\n\nTap APPROVE:`, {
+  if(bot) bot.sendMessage(ADMIN_ID, `🏦 NEW TOPUP - QUIZ\n👤 ${name} (${user_id})\n💰 R${price} = ${points} PLAY\n🧾 Proof: ${proof}`, {
     reply_markup: { inline_keyboard: [[{ text:`✅ APPROVE +${points} PLAY`, callback_data:`topup_approve:${user_id}:${points}:${topupId||0}` }],[{ text:'❌ REJECT', callback_data:`topup_reject:${user_id}:${points}:${topupId||0}` }]] }
   }).catch(()=>{});
   res.json({msg:'Topup proof sent! Admin will approve.'});
@@ -108,12 +142,20 @@ if(bot){
   bot.onText(/\/start/, async (msg)=>{
     const userId = String(msg.from.id); const name = msg.from.first_name||'Player';
     await getUserFromDB(userId, name);
-    bot.sendMessage(msg.chat.id, `🧠 Welcome to SHAYA QUIZ BOT, ${name}!\n\n🎁 Daily 200 FREE\n🎮 Play - Win - Withdraw\n🏆 Win R20 - R100\n💸 Data R5 = 1GB TikTok 24h\n\nPress PLAY below!`, {
+    bot.sendMessage(msg.chat.id, `🧠 Welcome to SHAYA QUIZ BOT, ${name}!\n\n🎁 Daily 200 FREE\n🎮 Play - Win - Withdraw\n🏆 Win R20 - R100\n\nPress PLAY below!`, {
       reply_markup: { inline_keyboard: [[{ text:'🧠 PLAY QUIZ - WIN CASH', web_app:{ url: QUIZ_URL + '?user_id=' + userId } }],[{ text:'📢 Join Shaya Earn Network', url:'https://t.me/ShayaEarnNetwork' }]] }
     });
   });
+  // ===== SYNC COMMAND =====
+  bot.onText(/\/link/, async (msg)=>{
+    const userId = String(msg.from.id);
+    const code = String(Math.floor(100000+Math.random()*899999));
+    linkCodes[code] = { telegramId: userId, expires: Date.now()+10*60*1000 };
+    if(SUPABASE_URL && SUPABASE_KEY) await sb('quiz_links','POST', { code, user_id:userId, expires_at:new Date(Date.now()+10*60*1000).toISOString() });
+    bot.sendMessage(msg.chat.id, `🔗 SYNC BOT ↔ BROWSER\n\nYour Code: *${code}*\nValid for 10 minutes.\n\nIn Chrome Browser, open Quiz and type this code in the 🔗 SYNC box and press SYNC.\nAfter that, Bot and Browser share ONE balance.`, { parse_mode:'Markdown' });
+  });
   bot.onText(/\/approve (\d+) (\d+)/, async (msg, match)=>{ if(String(msg.from.id)!==String(ADMIN_ID)) return; await approveTopup(msg.chat.id, match[1], parseInt(match[2]), null); });
-  bot.onText(/^\/approve$/, async (msg)=>{ if(String(msg.from.id)!==String(ADMIN_ID)) return; bot.sendMessage(msg.chat.id, `⚠️ You tapped /approve alone - no numbers came through.\nUse the ✅ APPROVE button, OR type:\n/approve 1159481047 100000`); });
+  bot.onText(/^\/approve$/, async (msg)=>{ if(String(msg.from.id)!==String(ADMIN_ID)) return; bot.sendMessage(msg.chat.id, `⚠️ Use the ✅ APPROVE button, OR type:\n/approve 1159481047 100000`); });
   bot.on('callback_query', async (q)=>{
     try{
       const data=q.data||''; if(String(q.from.id)!==String(ADMIN_ID)){ bot.answerCallbackQuery(q.id,{text:'Only admin',show_alert:true}).catch(()=>{}); return; }
@@ -134,7 +176,7 @@ if(bot){
   });
   bot.onText(/\/balance/, async (msg)=>{
     let u = await getUserFromDB(String(msg.from.id), msg.from.first_name);
-    bot.sendMessage(msg.chat.id, `💰 TRUE Balance (Supabase):\n🎁 Daily: ${u.dailyPoints}\n🎮 Play: ${u.playPoints}\n🏆 Win: ${u.points} = R${(u.points/1000).toFixed(2)}`);
+    bot.sendMessage(msg.chat.id, `💰 TRUE Balance (Supabase - Synced):\n🎁 Daily: ${u.dailyPoints}\n🎮 Play: ${u.playPoints}\n🏆 Win: ${u.points} = R${(u.points/1000).toFixed(2)}\n\nBrowser? Send /link and sync it.`);
   });
   bot.on('polling_error', (e)=> console.log('Polling:', e.message));
 }
