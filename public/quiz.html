@@ -16,9 +16,12 @@
 table{width:100%;border-collapse:collapse} td,th{padding:8px;border-bottom:1px solid #222;text-align:left;font-size:13px}
 input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;background:#0b0f14;color:#fff;margin:6px 0}
 .small{font-size:12px;color:#aaa;line-height:1.5} .hidden{display:none}
+.warn{background:#ff5722;color:#fff;padding:10px;border-radius:10px;text-align:center;font-weight:800;margin:12px;display:none}
+.syncbox{background:#0b3d91;border:1px solid #2196f3;border-radius:12px;padding:10px;margin-top:10px}
 </style></head>
 <body>
 <div class="top"><h1>🧠 SHAYA QUIZ BOT</h1><p>5 Q Per Round • 15 Sec Per Q • Timer Pauses During Ad • 2in1 Ads</p><div class="small" id="userLine">Loading...</div></div>
+<div id="guestWarn" class="warn">⚠️ You are in Browser (Guest). Sync below to link to your Bot account.</div>
 <div class="card"><img id="sceneryImg" class="scenery" src="https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=800&q=80" alt="Scenery"><div id="sceneryCap" style="text-align:center;padding:8px;font-size:13px">🦁 Kruger National Park</div>
 <div class="wallets">
 <div class="w">🎁 DAILY<br><b id="dailyBal">0</b><br><span class="small">NOT Withdrawable</span></div>
@@ -26,7 +29,15 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 <div class="w">🏆 WIN<br><b id="winBal">0</b><br><span class="small" id="winRand">R0.00 - WITHDRAWABLE</span></div>
 </div>
 <button class="bigbtn btn2" onclick="claimDaily()">🎁 CLAIM 200 DAILY FREE</button>
-<div class="small" id="claimMsg">✅ Auto-sync ON - no Refresh needed. Go back and come back, balance updates itself.</div></div>
+<div class="small" id="claimMsg">✅ Synced via Supabase - Bot + Browser share ONE balance after you Sync.</div>
+<!-- SYNC BOX - Only shows for Guest/Browser, hidden when already synced via Bot -->
+<div class="syncbox" id="syncBox">
+<b>🔗 SYNC BOT ↔ BROWSER</b><br><span class="small">In Telegram Bot send /link, copy the 6-digit code, paste here:</span>
+<input id="syncCode" placeholder="Enter 6-digit code from Bot /link" inputmode="numeric">
+<button class="bigbtn" onclick="doSync()" style="background:#2196f3;color:#fff">🔗 SYNC NOW - LINK BROWSER TO BOT</button>
+<div class="small" id="syncMsg"></div>
+</div>
+</div>
 <div class="card">
 <button class="bigbtn" id="startBtn" onclick="startQuizAuto()">🧠 START QUIZ - PRESS ONCE</button>
 <div id="quizArea" class="hidden">
@@ -38,17 +49,16 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 </div>
 <div class="card"><h3>🏆 TOP WIN POINTS</h3><div id="lb">Loading...</div></div>
 <div class="card"><h3>💸 WITHDRAW - WIN ONLY</h3>
-<p class="small">Min R20 (20,000 Win) • Max R100 (100,000 Win) • Data Fixed R5 = 5,000 Win = 1GB TikTok 24h • Daily + Play CANNOT be withdrawn</p>
+<p class="small">Min R20 (20,000 Win) • Max R100 (100,000 Win) • Data Fixed R5 = 5,000 Win = 1GB TikTok 24h</p>
 <select id="wMethod" onchange="updateWithdraw()"><option>Capitec</option><option>Airtime</option><option>Data - R5 = 1GB TikTok 24h</option></select>
 <input id="wAmount" type="number" placeholder="Amount R20 - R100 (Data: leave 5)" value="20" oninput="updateWithdraw()">
 <input id="wWallet" placeholder="Capitec Number / Phone Number">
 <div class="small" id="wInfo"></div>
 <button class="bigbtn btn3" onclick="doWithdraw()">💸 WITHDRAW WIN ONLY</button><div class="small" id="wMsg"></div></div>
-<div class="card"><h3>🏦 TOPUP - PLAY ONLY</h3><p class="small">Send to Capitec <b>1893275807</b> Ref: Your Name • Topup = PLAY ONLY, CANNOT be withdrawn • 1000 Play = R1</p>
+<div class="card"><h3>🏦 TOPUP - PLAY ONLY</h3><p class="small">Send to Capitec <b>1893275807</b> Ref: Your Name • Topup = PLAY ONLY • 1000 Play = R1</p>
 <select id="tPackage"><option value="1000|1">1000 PLAY = R1</option><option value="5000|5">5000 PLAY = R5</option><option value="10000|10">10000 PLAY = R10</option><option value="50000|50">50000 PLAY = R50</option><option value="100000|100">100000 PLAY = R100</option></select>
 <input id="tProof" placeholder="Paste EFT Proof / Ref">
 <button class="bigbtn btn4" onclick="doTopup()">🏦 SEND TOPUP PROOF</button><div class="small" id="tMsg"></div></div>
-<div class="card small">✅ WIN: +10 WIN • -10 Play, if none -10 Daily<br>❌ LOSE: -10 Win, if none -10 Play, if none -10 Daily<br>🛑 No points in ALL 3 = Playing STOPS<br>Withdraw WIN ONLY: Min R20 • Max R100 • Data R5 = 1GB TikTok 24h<br>Topup Play: Capitec 1893275807</div>
 <div id="adModal" style="display:none;position:fixed;inset:0;background:#000;z-index:9999;overflow-y:auto;padding:12px;text-align:center">
 <h2 style="margin:8px 0">🎬 ADVERTISEMENT</h2>
 <p style="color:#aaa;font-size:13px" id="adTitle">Timer is PAUSED during this ad.</p>
@@ -68,11 +78,43 @@ let tmaReady=false;
 window.initCdTma?.({id:'6155603'}).then(s=>{window.show=s; tmaReady=true;}).catch(e=>console.log(e));
 const tg=window.Telegram?.WebApp; if(tg){tg.ready(); tg.expand();}
 const params=new URLSearchParams(location.search);
-const user_id=params.get('user_id')||tg?.initDataUnsafe?.user?.id||'guest_'+Math.floor(Math.random()*999999);
-const user_name=tg?.initDataUnsafe?.user?.first_name||'Player';
+function getStableUserId(){
+  let fromUrl = params.get('user_id');
+  if(fromUrl && !String(fromUrl).startsWith('guest_')){ localStorage.setItem('shaya_user_id', String(fromUrl)); return String(fromUrl); }
+  let fromTg = tg?.initDataUnsafe?.user?.id;
+  if(fromTg){ localStorage.setItem('shaya_user_id', String(fromTg)); return String(fromTg); }
+  let saved = localStorage.getItem('shaya_user_id');
+  if(saved) return saved;
+  let created = 'guest_'+Math.floor(100000+Math.random()*899999);
+  localStorage.setItem('shaya_user_id', created);
+  return created;
+}
+let user_id = getStableUserId();
+let isGuest = String(user_id).startsWith('guest_');
+if(isGuest){ document.getElementById('guestWarn').style.display='block'; } else { document.getElementById('syncBox').style.display='none'; }
+const user_name = tg?.initDataUnsafe?.user?.first_name || localStorage.getItem('shaya_user_name') || 'Player';
+if(tg?.initDataUnsafe?.user?.first_name) localStorage.setItem('shaya_user_name', tg.initDataUnsafe.user.first_name);
 const DAILY=200, QUESTION_TIME=15, FEEDBACK_TIME=2000;
 let dailyPoints=0, playPoints=0, points=0, qIndex=0, correct=0, wrong=0, qInRound=0, currentQ=null, timer=null, timeLeft=15, playing=false, lastClaim='';
 let inAd=false, serverReady=false, adShowing=false, adClosed=false, answered=false, entryAdDone=false;
+// ===== SYNC FUNCTION =====
+async function doSync(){
+  const code = document.getElementById('syncCode').value.trim();
+  if(!code){ document.getElementById('syncMsg').innerText='❌ Enter code from Bot /link'; return; }
+  document.getElementById('syncMsg').innerText='🔗 Syncing...';
+  const r = await fetch('/api/link-claim',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code, browser_id:user_id})});
+  const d = await r.json();
+  if(d.error){ document.getElementById('syncMsg').innerText='❌ '+d.error; return; }
+  // SWITCH browser to Telegram ID - this is the sync!
+  user_id = String(d.telegramId);
+  localStorage.setItem('shaya_user_id', user_id);
+  dailyPoints=d.user.dailyPoints||0; playPoints=d.user.playPoints||0; points=d.user.points||0;
+  document.getElementById('syncMsg').innerText='✅ SYNCED! Browser is now linked to Bot ID '+user_id;
+  document.getElementById('guestWarn').style.display='none';
+  document.getElementById('syncBox').style.display='none';
+  isGuest=false; serverReady=true; saveLocalOnly();
+  await loadFromServer();
+}
 function save(){
   if(!serverReady) return;
   localStorage.setItem('shaya_quiz_'+user_id, JSON.stringify({dailyPoints,playPoints,points,qIndex,correct,wrong,lastClaim})); updateUI();
@@ -83,10 +125,9 @@ function saveLocalOnly(){ localStorage.setItem('shaya_quiz_'+user_id, JSON.strin
 function updateUI(){
   document.getElementById('dailyBal').innerText=dailyPoints; document.getElementById('playBal').innerText=playPoints; document.getElementById('winBal').innerText=points;
   document.getElementById('winRand').innerText='R'+(points/1000).toFixed(2)+' - WITHDRAWABLE';
-  document.getElementById('userLine').innerText=user_name+' • ID: '+user_id;
+  document.getElementById('userLine').innerText=user_name+' • ID: '+user_id + (isGuest ? ' (BROWSER - Sync below!)' : ' (SYNCED ✅)');
   document.getElementById('progressLabel').innerText=`Q ${qInRound+1}/5 • Correct ${correct} • Wrong ${wrong}`;
 }
-// BUG FIX: NO REFRESH BUTTON - auto-load on open + on return, and NEVER wipe - MAX merge
 async function loadFromServer(){
   try{
     const r=await fetch('/api/quiz-load?user_id='+encodeURIComponent(user_id)); const d=await r.json();
@@ -100,12 +141,11 @@ async function loadFromServer(){
   }catch(e){}
   serverReady=true; updateUI();
 }
-// BUG FIX: When you go back to bot and come back, auto-reload - no Refresh tap needed
 document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && !playing) loadFromServer(); });
 window.addEventListener('focus', ()=>{ if(!playing) loadFromServer(); });
 function claimDaily(){
   const today=new Date().toDateString(); if(lastClaim===today){ document.getElementById('claimMsg').innerText='✅ Already claimed today.'; return; }
-  dailyPoints+=DAILY; lastClaim=today; save(); document.getElementById('claimMsg').innerText=`✅ +${DAILY} Daily claimed!`;
+  dailyPoints+=DAILY; lastClaim=today; save(); document.getElementById('claimMsg').innerText=`✅ +${DAILY} Daily claimed! Saved to Supabase.`;
 }
 const SCENERY=[
   {img:'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=800&q=80',cap:'🦁 Kruger National Park'},
@@ -137,7 +177,7 @@ function spendOnWin(){ if(playPoints>=10) playPoints-=10; else if(dailyPoints>=1
 function spendOnLose(){ if(points>=10) points-=10; else if(playPoints>=10) playPoints-=10; else if(dailyPoints>=10) dailyPoints-=10; }
 function stopTimer(){ clearInterval(timer); timer=null; }
 function startQuizAuto(){
-  if(playing) return; // BUG FIX: double START blocked
+  if(playing) return;
   if(!hasPoints()){ alert('No points left. Claim Daily 200 or Topup Play.'); return; }
   playing=true; qInRound=0; correct=0; wrong=0; entryAdDone=false;
   document.getElementById('roundEnd').classList.add('hidden');
@@ -158,7 +198,7 @@ function showQuestionAuto(){
   updateUI();
 }
 function answerAuto(idx, btn){
-  if(answered) return; answered=true; stopTimer(); // BUG FIX: double-tap blocked, timer stops instantly
+  if(answered) return; answered=true; stopTimer();
   document.querySelectorAll('.opt').forEach(b=>b.onclick=null);
   if(idx===currentQ.correct){ points+=10; correct++; spendOnWin(); document.getElementById('feedback').innerHTML='✅ CORRECT! +10 WIN • -10 Play/Daily'; btn.classList.add('correct'); }
   else { wrong++; spendOnLose(); document.getElementById('feedback').innerHTML='❌ WRONG! -10 Win/Play/Daily. Correct: '+currentQ.opts[currentQ.correct]; btn.classList.add('wrong'); }
@@ -188,7 +228,7 @@ function showAdAuto(){
   showAdOnce(()=>{ qInRound++; save(); if(qInRound>=5) endRound(); else showQuestionAuto(); });
 }
 function showAdOnce(onClose){
-  if(adShowing) return; // BUG FIX: ad loads once per placement, never twice
+  if(adShowing) return;
   adShowing=true; adClosed=false; inAd=true; stopTimer();
   window._adOnClose=onClose;
   document.getElementById('adModal').style.display='block';
