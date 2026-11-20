@@ -24,18 +24,19 @@ async function sb(table, method, body, query=''){
   }catch(e){ console.log('Supabase error', e.message); return null; }
 }
 let memUsers = {};
-let linkCodes = {}; // SYNC: code -> { telegramId, expires }
+// SHAYA WATCH STYLE: One user = One Telegram ID. No guest. No link code.
 async function getUserFromDB(id, name){
+  id = String(id);
   if(SUPABASE_URL && SUPABASE_KEY){
     const rows = await sb('quiz_users','GET',null,`?user_id=eq.${encodeURIComponent(id)}&select=*`);
     if(Array.isArray(rows) && rows.length>0){
       let u = rows[0];
       return { user_id:id, name:u.name||name||'Player', points:u.points||0, playPoints:u.play_points||0, dailyPoints:u.daily_points||0, qIndex:u.q_index||0, correct:u.correct||0, wrong:u.wrong||0 };
     }
-    await sb('quiz_users','POST', { user_id:String(id), name:name||'Player', points:0, play_points:0, daily_points:0, q_index:0, correct:0, wrong:0 });
-    return { user_id:String(id), name:name||'Player', points:0, playPoints:0, dailyPoints:0, qIndex:0, correct:0, wrong:0 };
+    await sb('quiz_users','POST', { user_id:id, name:name||'Player', points:0, play_points:0, daily_points:0, q_index:0, correct:0, wrong:0 });
+    return { user_id:id, name:name||'Player', points:0, playPoints:0, dailyPoints:0, qIndex:0, correct:0, wrong:0 };
   }
-  if(!memUsers[id]) memUsers[id] = { user_id:String(id), name:name||'Player', points:0, playPoints:0, dailyPoints:0, qIndex:0, correct:0, wrong:0 };
+  if(!memUsers[id]) memUsers[id] = { user_id:id, name:name||'Player', points:0, playPoints:0, dailyPoints:0, qIndex:0, correct:0, wrong:0 };
   if(name) memUsers[id].name = name;
   return memUsers[id];
 }
@@ -50,60 +51,30 @@ async function approveTopup(adminChatId, targetId, pts, topupId){
   await saveUserToDB(u);
   if(SUPABASE_URL && SUPABASE_KEY && topupId) await sb('quiz_topups','PATCH', { status:'approved' }, `?id=eq.${topupId}`);
   if(bot && adminChatId) bot.sendMessage(adminChatId, `✅ APPROVED\n👤 ${u.name} (${targetId})\n💰 +${pts} PLAY\n🎮 New PLAY: ${u.playPoints}`).catch(()=>{});
-  try{ await bot.sendMessage(String(targetId), `✅ TOPUP APPROVED! +${pts} PLAY\n🎮 New PLAY: ${u.playPoints}\nCheck Bot AND Browser - both synced now.`); }catch(e){}
+  try{ await bot.sendMessage(String(targetId), `✅ TOPUP APPROVED! +${pts} PLAY\n🎮 New PLAY: ${u.playPoints}\nOpen Quiz in Telegram - it auto-updates, no Refresh.`); }catch(e){}
   return u;
 }
-// ===== SYNC BETWEEN BOT AND BROWSER =====
-// Bot creates code, Browser claims it -> Browser becomes same Telegram ID
-app.post('/api/link-create', async (req,res)=>{
-  const { user_id } = req.body||{};
-  if(!user_id) return res.json({error:'No user_id'});
-  const code = String(Math.floor(100000+Math.random()*899999));
-  linkCodes[code] = { telegramId: String(user_id), expires: Date.now()+10*60*1000 };
-  // Also save to Supabase if available so it survives restart
-  if(SUPABASE_URL && SUPABASE_KEY) await sb('quiz_links','POST', { code, user_id:String(user_id), expires_at:new Date(Date.now()+10*60*1000).toISOString() });
-  res.json({ok:true, code});
-});
-app.post('/api/link-claim', async (req,res)=>{
-  const { code, browser_id } = req.body||{};
-  if(!code) return res.json({error:'Enter code'});
-  let entry = linkCodes[String(code).trim()];
-  // Try Supabase if not in memory (Render restarted)
-  if(!entry && SUPABASE_URL && SUPABASE_KEY){
-    const rows = await sb('quiz_links','GET',null,`?code=eq.${encodeURIComponent(String(code).trim())}&select=*`);
-    if(Array.isArray(rows) && rows.length>0) entry = { telegramId: rows[0].user_id, expires: new Date(rows[0].expires_at).getTime() };
-  }
-  if(!entry) return res.json({error:'Code not found. In Bot send /link again.'});
-  if(Date.now() > entry.expires) return res.json({error:'Code expired (10 min). Send /link again.'});
-  // SYNC: Merge browser guest balance into Telegram account, then browser uses Telegram ID
-  let telegramUser = await getUserFromDB(entry.telegramId, '');
-  let browserUser = await getUserFromDB(String(browser_id||''), '');
-  // Keep the HIGHER of each - so nothing is lost in either place
-  telegramUser.points = Math.max(telegramUser.points, browserUser.points);
-  telegramUser.playPoints = Math.max(telegramUser.playPoints, browserUser.playPoints);
-  telegramUser.dailyPoints = Math.max(telegramUser.dailyPoints, browserUser.dailyPoints);
-  telegramUser.qIndex = Math.max(telegramUser.qIndex, browserUser.qIndex);
-  await saveUserToDB(telegramUser);
-  delete linkCodes[String(code).trim()];
-  if(SUPABASE_URL && SUPABASE_KEY) await sb('quiz_links','DELETE',null,`?code=eq.${encodeURIComponent(String(code).trim())}`);
-  res.json({ok:true, telegramId: entry.telegramId, user: telegramUser});
-});
+// WATCH STYLE SYNC: Server is truth. Client just sends what it did, server saves it.
 app.post('/api/quiz-sync', async (req,res)=>{
   const { user_id, name, points, playPoints, dailyPoints, qIndex, correct, wrong } = req.body||{};
-  if(!user_id) return res.json({ok:false});
-  let server = await getUserFromDB(String(user_id), name);
-  let u = { ...server };
-  if(points!==undefined) u.points = (server.points - points > 50) ? server.points : points;
-  if(playPoints!==undefined) u.playPoints = (server.playPoints - playPoints > 50) ? server.playPoints : playPoints;
-  if(dailyPoints!==undefined) u.dailyPoints = (server.dailyPoints - dailyPoints > 50) ? server.dailyPoints : dailyPoints;
-  if(qIndex!==undefined) u.qIndex = Math.max(u.qIndex, qIndex);
-  if(correct!==undefined) u.correct = Math.max(u.correct, correct);
-  if(wrong!==undefined) u.wrong = Math.max(u.wrong, wrong);
+  if(!user_id || String(user_id).startsWith('guest_')) return res.json({ok:false, error:'Guest not allowed - open via Telegram'});
+  let u = await getUserFromDB(String(user_id), name);
+  // Direct save like Watch - no stale-wipe logic needed because there is only ONE ID now
+  if(points!==undefined) u.points = points;
+  if(playPoints!==undefined) u.playPoints = playPoints;
+  if(dailyPoints!==undefined) u.dailyPoints = dailyPoints;
+  if(qIndex!==undefined) u.qIndex = qIndex;
+  if(correct!==undefined) u.correct = correct;
+  if(wrong!==undefined) u.wrong = wrong;
   if(name) u.name = name;
   await saveUserToDB(u);
-  res.json({ok:true, user:u, corrected:(u.points!==points || u.playPoints!==playPoints || u.dailyPoints!==dailyPoints)});
+  res.json({ok:true, user:u});
 });
-app.get('/api/quiz-load', async (req,res)=>{ res.json(await getUserFromDB(String(req.query.user_id||''), '')); });
+app.get('/api/quiz-load', async (req,res)=>{
+  const id = String(req.query.user_id||'');
+  if(!id || id.startsWith('guest_')) return res.json({error:'Guest not allowed'});
+  res.json(await getUserFromDB(id, ''));
+});
 app.get('/api/quiz-leaderboard', async (req,res)=>{
   if(SUPABASE_URL && SUPABASE_KEY){
     const rows = await sb('quiz_users','GET',null,`?select=user_id,name,points&order=points.desc&limit=20`);
@@ -143,19 +114,10 @@ if(bot){
     const userId = String(msg.from.id); const name = msg.from.first_name||'Player';
     await getUserFromDB(userId, name);
     bot.sendMessage(msg.chat.id, `🧠 Welcome to SHAYA QUIZ BOT, ${name}!\n\n🎁 Daily 200 FREE\n🎮 Play - Win - Withdraw\n🏆 Win R20 - R100\n\nPress PLAY below!`, {
-      reply_markup: { inline_keyboard: [[{ text:'🧠 PLAY QUIZ - WIN CASH', web_app:{ url: QUIZ_URL + '?user_id=' + userId } }],[{ text:'📢 Join Shaya Earn Network', url:'https://t.me/ShayaEarnNetwork' }]] }
+      reply_markup: { inline_keyboard: [[{ text:'🧠 PLAY QUIZ - WIN CASH', web_app:{ url: QUIZ_URL } }],[{ text:'📢 Join Shaya Earn Network', url:'https://t.me/ShayaEarnNetwork' }]] }
     });
   });
-  // ===== SYNC COMMAND =====
-  bot.onText(/\/link/, async (msg)=>{
-    const userId = String(msg.from.id);
-    const code = String(Math.floor(100000+Math.random()*899999));
-    linkCodes[code] = { telegramId: userId, expires: Date.now()+10*60*1000 };
-    if(SUPABASE_URL && SUPABASE_KEY) await sb('quiz_links','POST', { code, user_id:userId, expires_at:new Date(Date.now()+10*60*1000).toISOString() });
-    bot.sendMessage(msg.chat.id, `🔗 SYNC BOT ↔ BROWSER\n\nYour Code: *${code}*\nValid for 10 minutes.\n\nIn Chrome Browser, open Quiz and type this code in the 🔗 SYNC box and press SYNC.\nAfter that, Bot and Browser share ONE balance.`, { parse_mode:'Markdown' });
-  });
   bot.onText(/\/approve (\d+) (\d+)/, async (msg, match)=>{ if(String(msg.from.id)!==String(ADMIN_ID)) return; await approveTopup(msg.chat.id, match[1], parseInt(match[2]), null); });
-  bot.onText(/^\/approve$/, async (msg)=>{ if(String(msg.from.id)!==String(ADMIN_ID)) return; bot.sendMessage(msg.chat.id, `⚠️ Use the ✅ APPROVE button, OR type:\n/approve 1159481047 100000`); });
   bot.on('callback_query', async (q)=>{
     try{
       const data=q.data||''; if(String(q.from.id)!==String(ADMIN_ID)){ bot.answerCallbackQuery(q.id,{text:'Only admin',show_alert:true}).catch(()=>{}); return; }
@@ -176,7 +138,7 @@ if(bot){
   });
   bot.onText(/\/balance/, async (msg)=>{
     let u = await getUserFromDB(String(msg.from.id), msg.from.first_name);
-    bot.sendMessage(msg.chat.id, `💰 TRUE Balance (Supabase - Synced):\n🎁 Daily: ${u.dailyPoints}\n🎮 Play: ${u.playPoints}\n🏆 Win: ${u.points} = R${(u.points/1000).toFixed(2)}\n\nBrowser? Send /link and sync it.`);
+    bot.sendMessage(msg.chat.id, `💰 TRUE Balance (Supabase):\n🎁 Daily: ${u.dailyPoints}\n🎮 Play: ${u.playPoints}\n🏆 Win: ${u.points} = R${(u.points/1000).toFixed(2)}`);
   });
   bot.on('polling_error', (e)=> console.log('Polling:', e.message));
 }
