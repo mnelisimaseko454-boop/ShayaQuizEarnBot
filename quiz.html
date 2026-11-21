@@ -1,275 +1,134 @@
 <!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SHAYA QUIZ BOT - Play Win Withdraw</title>
+<title>SHAYA QUIZ BOT</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<!-- ADS CODE FROM YOUR FILE -->
-<script src="https://a.magsrv.com/ad-provider.js"></script>
-<script>(AdProvider = window.AdProvider || []).push({"serve": {}});</script>
+<!-- ONCLICKA ONLY - TMA -->
+<script src="https://js.onclckvd.com/in-stream-ad-admanager/tma.js"></script>
 <style>
 *{box-sizing:border-box} body{margin:0;font-family:Arial,sans-serif;background:#0b0f14;color:#fff}
-.top{padding:14px;text-align:center;background:linear-gradient(135deg,#0b3d91,#00a651)} .top h1{margin:0;font-size:24px} .top p{margin:6px 0;color:#ffe082;font-size:13px}
+.top{padding:14px;text-align:center;background:linear-gradient(135deg,#0b3d91,#00a651)} .top h1{margin:0;font-size:22px} .top p{margin:6px 0;color:#ffe082;font-size:12px}
 .card{background:#161d27;border-radius:16px;margin:12px;padding:14px}
 .bigbtn{width:100%;padding:14px;border:0;border-radius:12px;background:#FFD700;color:#000;font-weight:900;font-size:16px;cursor:pointer;margin:6px 0}
-.btn2{background:#00a651;color:#fff} .btn3{background:#ff5722;color:#fff} .btn4{background:#2196f3;color:#fff}
-.btnAd{background:#f97316;color:#fff} .btnAd:disabled{opacity:.6}
+.btn2{background:#00a651;color:#fff} .btn3{background:#ff5722;color:#fff} .btn4{background:#2196f3;color:#fff} .btnAd{background:#f97316;color:#fff} .btnAd:disabled{opacity:.6}
 .wallets{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px} .w{background:#0b0f14;border-radius:12px;padding:10px;text-align:center} .w b{font-size:20px}
-.scenery{width:100%;height:180px;object-fit:cover;border-radius:14px;display:block}
-.q{font-size:18px;font-weight:800;margin:12px 0} .opt{width:100%;padding:12px;margin:6px 0;border-radius:10px;border:1px solid #333;background:#222;color:#fff;text-align:left;cursor:pointer;font-size:15px}
+.scenery{width:100%;height:170px;object-fit:cover;border-radius:14px;display:block}
+.q{font-size:18px;font-weight:800;margin:12px 0} .opt{width:100%;padding:12px;margin:6px 0;border-radius:10px;border:1px solid #333;background:#222;color:#fff;text-align:left;cursor:pointer}
 .opt.correct{background:#00a651} .opt.wrong{background:#e53935}
 table{width:100%;border-collapse:collapse} td,th{padding:8px;border-bottom:1px solid #222;text-align:left;font-size:13px}
 input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;background:#0b0f14;color:#fff;margin:6px 0}
 .small{font-size:12px;color:#aaa;line-height:1.5} .hidden{display:none}
 </style></head>
 <body>
-<div class="top"><h1>🧠 SHAYA QUIZ BOT</h1><p>10,000 Q • 80% HARDEST • 5 Q Per Round • 5 Sec Per Q • Auto Ads</p><div class="small" id="userLine">Loading...</div></div>
+<script>
+// ===== ONCLICKA ONLY - 2 DIFFERENT ADS =====
+// Ad 1: Rewarded Video - AD 473230 - Spot 6155603
+const SPOT_REWARDED = '6155603';
+// Ad 2: In-Page - AD 473429 - Spot 6155715 - your new script
+const SPOT_INPAGE = '6155715';
+let showRewarded = null, showInpage = null;
+window.initCdTma?.({ id: SPOT_REWARDED }).then(show => { window.show = show; showRewarded = show; }).catch(e => console.log(e));
+window.initCdTma?.({ id: SPOT_INPAGE }).then(show => { showInpage = show; }).catch(e => console.log(e));
+</script>
+<!-- AD 2 - IN-PAGE CODE - AD 473429 - PASTE YOUR FULL SCRIPT BELOW IF TMA INIT DOES NOT SHOW IN-PAGE -->
+<!-- Your In-Page script from OnclickA (473429 / 6155715) goes here - it is the long <script data-cfasync='false'>... you sent. Keep it as-is, do not edit it. -->
 
-<div class="card"><img id="sceneryImg" class="scenery" src="https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=800&q=80" alt="Scenery"><div id="sceneryCap" style="text-align:center;padding:8px;font-size:13px">🦁 Kruger National Park</div>
+<div class="top"><h1>🧠 SHAYA QUIZ BOT</h1><p>10,000 Q • 80% HARDEST • 5 Q Per Round • 5 Sec Per Q</p><div class="small" id="userLine">Loading...</div></div>
+
+<div class="card"><img id="sceneryImg" class="scenery" src="https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=800&q=80"><div id="sceneryCap" style="text-align:center;padding:8px;font-size:13px">🦁 Kruger National Park</div>
 <div class="wallets">
 <div class="w">🎁 DAILY<br><b id="dailyBal">0</b><br><span class="small">NOT Withdrawable</span></div>
 <div class="w">🎮 PLAY<br><b id="playBal">0</b><br><span class="small">NOT Withdrawable</span></div>
-<div class="w">🏆 WIN<br><b id="winBal">0</b><br><span class="small" id="winRand">R0.00 - WITHDRAWABLE</span></div>
+<div class="w">🏆 WIN<br><b id="winBal">0</b><br><span class="small" id="winRand">R0.00</span></div>
 </div>
-<button class="bigbtn btn2" onclick="claimDaily()">🎁 CLAIM 200 DAILY FREE</button>
-<div class="small" id="claimMsg"></div>
-<!-- WATCH AD BUTTON - Uses YOUR Ad Code -->
+<button class="bigbtn btn2" onclick="claimDaily()">🎁 CLAIM 200 DAILY FREE</button><div class="small" id="claimMsg"></div>
 <button class="bigbtn btnAd" id="adBtn2in1" onclick="watch2in1()">📢 WATCH AD (2-in-1) +5 PLAY</button>
-<div class="small" id="adStatus2in1" style="text-align:center;color:#FFD700">2 Ads = 1 Reward • Ad 1 → Ad 2 → +5 Play</div>
+<div class="small" id="adStatus2in1" style="text-align:center;color:#FFD700">Ad 1: Rewarded Video (6155603) • Ad 2: In-Page (6155715) → +5</div>
 </div>
 
 <div class="card"><button class="bigbtn" id="startBtn" onclick="startQuizAuto()">🧠 START QUIZ - PRESS ONCE</button>
-<div id="quizArea" class="hidden">
-<div style="display:flex;justify-content:space-between"><span id="roundLabel">Round 1</span><span id="timerLabel" style="color:#FFD700;font-weight:900">⏱️ 5s</span></div>
-<div class="q" id="qText"></div><div id="opts"></div><div id="feedback"></div>
-<div class="small" id="progressLabel"></div>
-</div>
-<div id="roundEnd" class="hidden"><h3 id="roundResult"></h3><button class="bigbtn" onclick="startQuizAuto()">🧠 START NEXT ROUND</button></div>
-</div>
+<div id="quizArea" class="hidden"><div style="display:flex;justify-content:space-between"><span id="roundLabel">Round 1</span><span id="timerLabel" style="color:#FFD700;font-weight:900">⏱️ 5s</span></div>
+<div class="q" id="qText"></div><div id="opts"></div><div id="feedback"></div><div class="small" id="progressLabel"></div></div>
+<div id="roundEnd" class="hidden"><h3 id="roundResult"></h3><button class="bigbtn" onclick="startQuizAuto()">🧠 START NEXT ROUND</button></div></div>
 
 <div class="card"><h3>🏆 TOP WIN POINTS</h3><div id="lb">Loading...</div></div>
 
 <div class="card"><h3>💸 WITHDRAW - WIN ONLY</h3>
 <p class="small">Min R20 (20,000 Win) • Max R100 (100,000 Win) • Data Fixed R5 = 5,000 Win = 1GB TikTok 24h • Daily + Play CANNOT be withdrawn</p>
 <select id="wMethod" onchange="updateWithdraw()"><option>Capitec</option><option>Airtime</option><option>Data - R5 = 1GB TikTok 24h</option></select>
-<input id="wAmount" type="number" placeholder="Amount R20 - R100 (Data: leave 5)" value="20" oninput="updateWithdraw()">
-<input id="wWallet" placeholder="Capitec Number / Phone Number">
-<div class="small" id="wInfo"></div>
-<button class="bigbtn btn3" onclick="doWithdraw()">💸 WITHDRAW WIN ONLY</button><div class="small" id="wMsg"></div></div>
+<input id="wAmount" type="number" value="20" oninput="updateWithdraw()"><input id="wWallet" placeholder="Capitec Number / Phone Number">
+<div class="small" id="wInfo"></div><button class="bigbtn btn3" onclick="doWithdraw()">💸 WITHDRAW WIN ONLY</button><div class="small" id="wMsg"></div></div>
 
 <div class="card"><h3>🏦 TOPUP - PLAY ONLY</h3><p class="small">Send to Capitec <b>1893275807</b> Ref: Your Name • Topup = PLAY ONLY, CANNOT be withdrawn • 1000 Play = R1</p>
 <select id="tPackage"><option value="1000|1">1000 PLAY = R1</option><option value="5000|5">5000 PLAY = R5</option><option value="10000|10">10000 PLAY = R10</option><option value="50000|50">50000 PLAY = R50</option><option value="100000|100">100000 PLAY = R100</option></select>
-<input id="tProof" placeholder="Paste EFT Proof / Ref">
-<button class="bigbtn btn4" onclick="doTopup()">🏦 SEND TOPUP PROOF</button><div class="small" id="tMsg"></div></div>
+<input id="tProof" placeholder="Paste EFT Proof / Ref"><button class="bigbtn btn4" onclick="doTopup()">🏦 SEND TOPUP PROOF</button><div class="small" id="tMsg"></div></div>
 
-<div class="card small">✅ WIN: +10 WIN • -10 Play, if none -10 Daily<br>❌ LOSE: -10 Win, if none -10 Play, if none -10 Daily<br>🛑 No points in ALL 3 = Playing STOPS<br>Withdraw WIN ONLY: Min R20 • Max R100 • Data R5 = 1GB TikTok 24h<br>Topup Play: Capitec 1893275807</div>
-
-<!-- AD MODAL - FROM YOUR FILE -->
-<div id="adModal" style="display:none;position:fixed;inset:0;background:#000;z-index:9999;overflow-y:auto;padding:12px;text-align:center">
-<h2 style="margin:8px 0">🎬 ADVERTISEMENT</h2>
-<p style="color:#aaa;font-size:13px">Please watch this ad to continue. Next question starts automatically.</p>
-<div id="onclicka-ad-slot" style="background:#111;border-radius:16px;min-height:320px;margin:14px 0;display:flex;align-items:center;justify-content:center;color:#aaa;padding:12px"><span id="adLoadingText">📺 Loading Ad...</span></div>
-<p id="adStatus" style="color:#FFD700;font-size:13px">Ad loading...</p>
-<button class="bigbtn" id="adContinueBtn" onclick="closeAdEarly()" style="display:none;background:#00ff88">✅ CONTINUE TO NEXT QUESTION →</button>
-</div>
+<div id="adModal" style="display:none;position:fixed;inset:0;background:#000;z-index:9999;padding:12px;text-align:center">
+<h2>🎬 ADVERTISEMENT</h2><p class="small" id="adModalText">Watch Ad to continue.</p>
+<div style="background:#111;border-radius:16px;min-height:280px;margin:14px 0;display:flex;align-items:center;justify-content:center;padding:12px"><span id="adLoadingText">📺 Loading Ad...</span></div>
+<p id="adStatus" style="color:#FFD700">Ad loading...</p>
+<button class="bigbtn" id="adContinueBtn" onclick="closeAdEarly()" style="display:none;background:#00ff88">✅ CONTINUE →</button></div>
 
 <script>
-const tg = window.Telegram?.WebApp; if(tg){ tg.ready(); tg.expand(); }
-const params = new URLSearchParams(location.search);
-const user_id = params.get('user_id') || tg?.initDataUnsafe?.user?.id || 'guest_'+Math.floor(Math.random()*999999);
-const user_name = tg?.initDataUnsafe?.user?.first_name || 'Player';
-const DAILY = 200;
-let dailyPoints=0, playPoints=0, points=0, qIndex=0, correct=0, wrong=0, qInRound=0, currentQ=null, timer=null, timeLeft=5, playing=false, lastClaim='';
-function save(){ localStorage.setItem('shaya_quiz_'+user_id, JSON.stringify({dailyPoints,playPoints,points,qIndex,correct,wrong,lastClaim})); updateUI();
-  fetch('/api/quiz-sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id,name:user_name,points,playPoints,dailyPoints,qIndex,correct,wrong})}).catch(()=>{}); }
-function updateUI(){
-  document.getElementById('dailyBal').innerText=dailyPoints; document.getElementById('playBal').innerText=playPoints; document.getElementById('winBal').innerText=points;
-  document.getElementById('winRand').innerText='R'+(points/1000).toFixed(2)+' - WITHDRAWABLE';
-  document.getElementById('userLine').innerText=user_name+' • ID: '+user_id;
-  document.getElementById('progressLabel').innerText=`Q ${qInRound+1}/5 • Correct ${correct} • Wrong ${wrong}`;
-}
-function loadLocal(){ try{ const s=JSON.parse(localStorage.getItem('shaya_quiz_'+user_id)||'{}'); if(s.points!==undefined){ dailyPoints=s.dailyPoints||0; playPoints=s.playPoints||0; points=s.points||0; qIndex=s.qIndex||0; correct=s.correct||0; wrong=s.wrong||0; lastClaim=s.lastClaim||''; } }catch(e){} updateUI(); }
-async function loadFromServer(){
-  try{ const r=await fetch('/api/quiz-load?user_id='+encodeURIComponent(user_id)); const d=await r.json();
-    if(d && (d.points||d.playPoints||d.dailyPoints)){ dailyPoints=d.dailyPoints||0; playPoints=d.playPoints||0; points=d.points||0; qIndex=d.qIndex||0; correct=d.correct||0; wrong=d.wrong||0; save(); }
-  }catch(e){}
-}
-function claimDaily(){
-  const today=new Date().toDateString(); if(lastClaim===today){ document.getElementById('claimMsg').innerText='✅ Already claimed today. Come back tomorrow.'; return; }
-  dailyPoints+=DAILY; lastClaim=today; save(); document.getElementById('claimMsg').innerText=`✅ +${DAILY} Daily Points claimed!`;
-}
-const SCENERY=[
-  {img:'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=800&q=80',cap:'🦁 Kruger National Park'},
-  {img:'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=800&q=80',cap:'🏔️ Drakensberg Mountains'},
-  {img:'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80',cap:'🌊 Durban Beach'},
-  {img:'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80',cap:'🌅 Cape Town Sunset'},
-  {img:'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&q=80',cap:'🌲 Knysna Forest'},
-  {img:'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=800&q=80',cap:'🏞️ Blyde River Canyon'}
-];
-function setScenery(i){ let s=SCENERY[i%SCENERY.length]; let img=document.getElementById('sceneryImg'); img.onerror=()=>{ img.src='https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=800&q=80'; }; img.src=s.img; document.getElementById('sceneryCap').innerText=s.cap; }
+const tg=window.Telegram?.WebApp; if(tg){tg.ready();tg.expand();}
+const params=new URLSearchParams(location.search);
+const user_id=params.get('user_id')||tg?.initDataUnsafe?.user?.id||'guest_'+Math.floor(Math.random()*999999);
+const user_name=tg?.initDataUnsafe?.user?.first_name||'Player';
+let dailyPoints=0,playPoints=0,points=0,qIndex=0,correct=0,wrong=0,qInRound=0,currentQ=null,timer=null,timeLeft=5,playing=false,lastClaim='';
+function save(){localStorage.setItem('shaya_quiz_'+user_id,JSON.stringify({dailyPoints,playPoints,points,qIndex,correct,wrong,lastClaim}));updateUI();fetch('/api/quiz-sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id,name:user_name,points,playPoints,dailyPoints,qIndex,correct,wrong})}).catch(()=>{});}
+function updateUI(){document.getElementById('dailyBal').innerText=dailyPoints;document.getElementById('playBal').innerText=playPoints;document.getElementById('winBal').innerText=points;document.getElementById('winRand').innerText='R'+(points/1000).toFixed(2)+' - WITHDRAWABLE';document.getElementById('userLine').innerText=user_name+' • ID: '+user_id;document.getElementById('progressLabel').innerText=`Q ${qInRound+1}/5 • Correct ${correct} • Wrong ${wrong}`;}
+function loadLocal(){try{const s=JSON.parse(localStorage.getItem('shaya_quiz_'+user_id)||'{}');if(s.points!==undefined){dailyPoints=s.dailyPoints||0;playPoints=s.playPoints||0;points=s.points||0;qIndex=s.qIndex||0;correct=s.correct||0;wrong=s.wrong||0;lastClaim=s.lastClaim||'';}}catch{}updateUI();}
+async function loadFromServer(){try{const r=await fetch('/api/quiz-load?user_id='+encodeURIComponent(user_id));const d=await r.json();if(d&&(d.points||d.playPoints||d.dailyPoints)){dailyPoints=d.dailyPoints||0;playPoints=d.playPoints||0;points=d.points||0;qIndex=d.qIndex||0;correct=d.correct||0;wrong=d.wrong||0;save();}}catch{}}
+function claimDaily(){const today=new Date().toDateString();if(lastClaim===today){document.getElementById('claimMsg').innerText='✅ Already claimed today.';return;}dailyPoints+=200;lastClaim=today;save();document.getElementById('claimMsg').innerText='✅ +200 Daily claimed!';}
+const SCENERY=[{img:'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=800&q=80',cap:'🦁 Kruger National Park'},{img:'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=800&q=80',cap:'🏔️ Drakensberg Mountains'},{img:'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80',cap:'🌊 Durban Beach'},{img:'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80',cap:'🌅 Cape Town Sunset'},{img:'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&q=80',cap:'🌲 Knysna Forest'},{img:'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=800&q=80',cap:'🏞️ Blyde River Canyon'}];
+function setScenery(i){let s=SCENERY[i%SCENERY.length];let img=document.getElementById('sceneryImg');img.src=s.img;document.getElementById('sceneryCap').innerText=s.cap;}
+function seeded(n){let x=n*9301+49297;x=x%233280;return x/233280;}
+function makeQ(i){let r=seeded(i*7+13);let hard=r<0.8;let shift=i%4;let q,opts,c;if(!hard){const easy=[{q:'What is 2 + 3?',a:['4','5','6','7'],c:1},{q:'Capital of South Africa?',a:['Cape Town','Pretoria','Durban','Joburg'],c:1},{q:'Which province is Mbombela in?',a:['Limpopo','Mpumalanga','Gauteng','KZN'],c:1}];let b=easy[i%easy.length];q=b.q;opts=[...b.a];c=b.c;}else{let type=i%5;if(type===0){let a=12+Math.floor(seeded(i)*70);let b2=13+Math.floor(seeded(i+99)*70);let ans=a*b2;q=`What is ${a} x ${b2}?`;opts=[ans,ans+10,ans-10,ans+100];c=0;}else if(type===1){let b2=7+Math.floor(seeded(i+5)*12);let ans=23+Math.floor(seeded(i+11)*60);let n=b2*ans+Math.floor(seeded(i+21)*b2);q=`What is ${n} ÷ ${b2}?`;opts=[ans,ans+1,ans-1,ans+5];c=0;}else if(type===2){let n=120+Math.floor(seeded(i+31)*400);let p=[25,40,60,75][i%4];let ans=Math.round(n*p/100);q=`What is ${p}% of ${n}?`;opts=[ans,ans+5,ans-5,ans+20];c=0;}else if(type===3){const hg=[{q:'Capital of Australia?',a:['Sydney','Canberra','Melbourne','Perth'],c:1},{q:'Chemical symbol for Gold?',a:['Ag','Fe','Au','Pb'],c:2},{q:'Largest desert?',a:['Sahara','Gobi','Antarctic','Kalahari'],c:2},{q:'Square root of 144?',a:['11','12','13','14'],c:1},{q:'Capital of Canada?',a:['Toronto','Ottawa','Vancouver','Montreal'],c:1}];let b=hg[i%hg.length];q=b.q;opts=[...b.a];c=b.c;}else{let s=5+Math.floor(seeded(i+41)*20);let d=3+Math.floor(seeded(i+51)*7);let seq=[s,s+d,s+d*2,s+d*3];let ans=s+d*4;q=`Next: ${seq.join(', ')}, ?`;opts=[ans,ans+d,ans-d,ans+1];c=0;}}for(let k=0;k<shift;k++){opts.push(opts.shift());}let ci=(c-shift+4)%4;return{q:`Q${(i%10000)+1}: ${q}`,opts,correct:ci};}
+function hasPoints(){return points>0||playPoints>0||dailyPoints>0;}
+function spendWin(){if(playPoints>=10)playPoints-=10;else if(dailyPoints>=10)dailyPoints-=10;}
+function spendLose(){if(points>=10)points-=10;else if(playPoints>=10)playPoints-=10;else if(dailyPoints>=10)dailyPoints-=10;}
+function startQuizAuto(){if(playing)return;if(!hasPoints()){alert('No points. Claim Daily 200 or Topup.');return;}playing=true;qInRound=0;document.getElementById('roundEnd').classList.add('hidden');document.getElementById('quizArea').classList.remove('hidden');document.getElementById('startBtn').innerText='🎮 PLAYING...';showQuestionAuto();}
+function showQuestionAuto(){if(qInRound>=5){endRound();return;}setScenery(qIndex);currentQ=makeQ(qIndex);document.getElementById('roundLabel').innerText='Round Question '+(qInRound+1)+'/5';document.getElementById('qText').innerText=currentQ.q;let d=document.getElementById('opts');d.innerHTML='';document.getElementById('feedback').innerHTML='';currentQ.opts.forEach((o,idx)=>{let b=document.createElement('button');b.className='opt';b.innerText=o;b.onclick=()=>answerAuto(idx,b);d.appendChild(b);});timeLeft=5;document.getElementById('timerLabel').innerText='⏱️ 5s';clearInterval(timer);timer=setInterval(()=>{timeLeft--;document.getElementById('timerLabel').innerText='⏱️ '+timeLeft+'s';if(timeLeft<=0){clearInterval(timer);timeoutAnswer();}},1000);updateUI();}
+function answerAuto(idx,btn){clearInterval(timer);document.querySelectorAll('.opt').forEach(b=>b.onclick=null);if(idx===currentQ.correct){points+=10;correct++;spendWin();document.getElementById('feedback').innerHTML='✅ CORRECT! +10 WIN • -10 Play/Daily';btn.classList.add('correct');}else{wrong++;spendLose();document.getElementById('feedback').innerHTML='❌ WRONG! Correct: '+currentQ.opts[currentQ.correct];btn.classList.add('wrong');}qIndex=(qIndex+1)%10000;save();setTimeout(()=>{showAdAuto();},800);}
+function timeoutAnswer(){document.querySelectorAll('.opt').forEach(b=>b.onclick=null);wrong++;spendLose();document.getElementById('feedback').innerHTML='⏱️ TIME OUT! Correct: '+currentQ.opts[currentQ.correct];qIndex=(qIndex+1)%10000;save();setTimeout(()=>{showAdAuto();},800);}
+function endRound(){playing=false;clearInterval(timer);document.getElementById('quizArea').classList.add('hidden');document.getElementById('roundEnd').classList.remove('hidden');document.getElementById('roundResult').innerText=`Round Done! Correct: ${correct} • Wrong: ${wrong} • WIN: ${points} (R${(points/1000).toFixed(2)})`;document.getElementById('startBtn').innerText='🧠 START NEXT ROUND';save();loadLB();}
 
-// 10,000 Q - 80% HARDEST - Generated, never repeats in same run
-// 80% = Hard Math / Hard GK, 20% = Easy
-function seeded(n){ let x=n*9301+49297; x=x%233280; return x/233280; }
-function makeQ(i){
-  let r=seeded(i*7+13);
-  let hard = r < 0.8; // 80% hardest
-  let shift=i%4;
-  let q, opts, c;
-  if(!hard){
-    const easy=[
-      {q:'What is 2 + 3?',a:['4','5','6','7'],c:1},
-      {q:'Capital of South Africa?',a:['Cape Town','Pretoria','Durban','Joburg'],c:1},
-      {q:'Which province is Mbombela in?',a:['Limpopo','Mpumalanga','Gauteng','KZN'],c:1},
-      {q:'What colour is the SA flag missing?',a:['Pink','Green','Red','Blue'],c:0},
-      {q:'How many seconds in 1 minute?',a:['30','60','90','120'],c:1}
-    ];
-    let b=easy[i%easy.length]; q=b.q; opts=[...b.a]; c=b.c;
-  } else {
-    let type = i % 5;
-    if(type===0){ // Hard multiplication 2-digit x 2-digit
-      let a=12+Math.floor(seeded(i)*70); let b2=13+Math.floor(seeded(i+99)*70); let ans=a*b2;
-      q=`What is ${a} x ${b2}?`; opts=[ans, ans+10, ans-10, ans+100]; c=0;
-    } else if(type===1){ // Hard division / remainder
-      let b2=7+Math.floor(seeded(i+5)*12); let ans=23+Math.floor(seeded(i+11)*60); let n=b2*ans+Math.floor(seeded(i+21)*b2);
-      q=`What is ${n} ÷ ${b2}? (whole number)`; opts=[ans, ans+1, ans-1, ans+5]; c=0;
-    } else if(type===2){ // Hard % / fractions
-      let n=120+Math.floor(seeded(i+31)*400); let p=[25,40,60,75][i%4]; let ans=Math.round(n*p/100);
-      q=`What is ${p}% of ${n}?`; opts=[ans, ans+5, ans-5, ans+20]; c=0;
-    } else if(type===3){ // Hard GK - Capitals / Provinces / Science
-      const hardGK=[
-        {q:'Capital of Australia?',a:['Sydney','Canberra','Melbourne','Perth'],c:1},
-        {q:'Which province is Polokwane in?',a:['Gauteng','Limpopo','Mpumalanga','North West'],c:1},
-        {q:'Chemical symbol for Gold?',a:['Ag','Fe','Au','Pb'],c:2},
-        {q:'Largest desert in the world?',a:['Sahara','Gobi','Antarctic','Kalahari'],c:2},
-        {q:'How many sides does a hexagon have?',a:['5','6','7','8'],c:1},
-        {q:'What is the square root of 144?',a:['11','12','13','14'],c:1},
-        {q:'Which planet is closest to the Sun?',a:['Venus','Mercury','Mars','Earth'],c:1},
-        {q:'Capital of Canada?',a:['Toronto','Ottawa','Vancouver','Montreal'],c:1}
-      ];
-      let b=hardGK[i%hardGK.length]; q=b.q; opts=[...b.a]; c=b.c;
-    } else { // Hard sequence / logic
-      let start=5+Math.floor(seeded(i+41)*20); let diff=3+Math.floor(seeded(i+51)*7);
-      let seq=[start, start+diff, start+diff*2, start+diff*3]; let ans=start+diff*4;
-      q=`Next number: ${seq.join(', ')}, ?`; opts=[ans, ans+diff, ans-diff, ans+1]; c=0;
-    }
-  }
-  // Shuffle with shift so answer position changes, like your file
-  for(let k=0;k<shift;k++){ opts.push(opts.shift()); }
-  let correctIdx=(c-shift+4)%4;
-  return {q:`Q${(i%10000)+1}: ${q}`, opts, correct:correctIdx};
-}
-function hasPoints(){ return points>0||playPoints>0||dailyPoints>0; }
-function spendOnWin(){ if(playPoints>=10) playPoints-=10; else if(dailyPoints>=10) dailyPoints-=10; }
-function spendOnLose(){ if(points>=10) points-=10; else if(playPoints>=10) playPoints-=10; else if(dailyPoints>=10) dailyPoints-=10; }
-function startQuizAuto(){
-  if(playing) return;
-  if(!hasPoints()){ alert('No points left in Daily, Play AND Win. Claim Daily 200 or Topup Play to continue.'); return; }
-  playing=true; qInRound=0; document.getElementById('roundEnd').classList.add('hidden'); document.getElementById('quizArea').classList.remove('hidden');
-  document.getElementById('startBtn').innerText='🎮 PLAYING...'; showQuestionAuto();
-}
-function showQuestionAuto(){
-  if(qInRound>=5){ endRound(false); return; }
-  setScenery(qIndex); currentQ=makeQ(qIndex);
-  document.getElementById('roundLabel').innerText='Round Question '+(qInRound+1)+'/5';
-  document.getElementById('qText').innerText=currentQ.q;
-  const optsDiv=document.getElementById('opts'); optsDiv.innerHTML=''; document.getElementById('feedback').innerHTML='';
-  currentQ.opts.forEach((o,idx)=>{ let b=document.createElement('button'); b.className='opt'; b.innerText=o; b.onclick=()=>answerAuto(idx,b); optsDiv.appendChild(b); });
-  timeLeft=5; document.getElementById('timerLabel').innerText='⏱️ 5s'; clearInterval(timer);
-  timer=setInterval(()=>{ timeLeft--; document.getElementById('timerLabel').innerText='⏱️ '+timeLeft+'s'; if(timeLeft<=0){ clearInterval(timer); timeoutAnswer(); } },1000);
-  updateUI();
-}
-function answerAuto(idx, btn){
-  clearInterval(timer);
-  document.querySelectorAll('.opt').forEach(b=>b.onclick=null);
-  if(idx===currentQ.correct){ points+=10; correct++; spendOnWin(); document.getElementById('feedback').innerHTML='✅ CORRECT! +10 WIN • -10 Play/Daily'; btn.classList.add('correct'); }
-  else { wrong++; spendOnLose(); document.getElementById('feedback').innerHTML='❌ WRONG! -10 Win/Play/Daily. Correct: '+currentQ.opts[currentQ.correct]; btn.classList.add('wrong'); }
-  qIndex=(qIndex+1)%10000; save(); setTimeout(()=>{ showAdAuto(); },800);
-}
-function timeoutAnswer(){
-  document.querySelectorAll('.opt').forEach(b=>b.onclick=null);
-  wrong++; spendOnLose(); document.getElementById('feedback').innerHTML='⏱️ TIME OUT! -10 Win/Play/Daily. Correct: '+currentQ.opts[currentQ.correct];
-  qIndex=(qIndex+1)%10000; save(); setTimeout(()=>{ showAdAuto(); },800);
-}
-function endRound(manual){
-  playing=false; clearInterval(timer); document.getElementById('quizArea').classList.add('hidden'); document.getElementById('roundEnd').classList.remove('hidden');
-  document.getElementById('roundResult').innerText=`Round Done! Correct: ${correct} • Wrong: ${wrong} • WIN: ${points} (R${(points/1000).toFixed(2)})`;
-  document.getElementById('startBtn').innerText='🧠 START NEXT ROUND'; save(); loadLB();
-}
-
-// ADS - FROM YOUR FILE - Used for BOTH Between Questions AND Watch Ad Button
-let adTimer=null;
+// ===== ADS - ONLY ONCLICKA - 2 DIFFERENT =====
+let adTimer=null, ad2in1Busy=false;
+// BETWEEN QUESTIONS - 1x Rewarded Video only (6155603) - safe, not 2-in-1
 function showAdAuto(){
   document.getElementById('adModal').style.display='block';
-  document.getElementById('adLoadingText').innerText='📺 Loading Ad...';
-  document.getElementById('adStatus').innerText='Ad loading... Please wait.';
+  document.getElementById('adModalText').innerText='Watch Ad to continue - Next question after ad';
+  document.getElementById('adLoadingText').innerText='📺 Loading Rewarded Video (6155603)...';
+  document.getElementById('adStatus').innerText='Ad - Rewarded Video';
   document.getElementById('adContinueBtn').style.display='none';
-  document.getElementById('adContinueBtn').innerText='✅ CONTINUE TO NEXT QUESTION →';
-  document.getElementById('adContinueBtn').onclick=closeAdEarly;
-  try{ if(window.AdProvider) window.AdProvider.push({"serve":{}}); }catch(e){}
-  clearTimeout(adTimer);
-  adTimer=setTimeout(()=>{ document.getElementById('adLoadingText').innerText='✅ Ad finished'; document.getElementById('adStatus').innerText='Thanks! Tap Continue.'; document.getElementById('adContinueBtn').style.display='block'; },6000);
-  clearTimeout(window._adAutoNext); window._adAutoNext=setTimeout(()=>{ closeAdAndNext(); },10000);
+  if(showRewarded){ showRewarded().then(()=>{ console.log('tma rewarded played'); document.getElementById('adLoadingText').innerText='✅ Ad finished'; setTimeout(()=>{ closeAdAndNext(); },800); }).catch(e=>{ console.log(e); closeAdAndNext(); }); }
+  else { setTimeout(()=>{ closeAdAndNext(); },3000); }
 }
-function closeAdEarly(){ closeAdAndNext(); }
-function closeAdAndNext(){
-  clearTimeout(adTimer); clearTimeout(window._adAutoNext); document.getElementById('adModal').style.display='none';
-  qInRound++; save(); if(qInRound>=5) endRound(false); else showQuestionAuto();
-}
+function closeAdEarly(){ clearTimeout(adTimer); closeAdAndNext(); }
+function closeAdAndNext(){ clearTimeout(adTimer); document.getElementById('adModal').style.display='none'; qInRound++; save(); if(qInRound>=5) endRound(); else showQuestionAuto(); }
 
-// WATCH AD BUTTON - 2-in-1 - Uses SAME Ad Code From Your File
-// Ad 1 = AdProvider serve, Ad 2 = AdProvider serve again, then +5
-let ad2in1Busy=false;
+// WATCH AD BUTTON - 2-in-1 ONLY ONCLICKA, 2 DIFFERENT FORMATS
+// Ad 1 = Rewarded Video (473230 / 6155603) -> Ad 2 = In-Page (473429 / 6155715) -> +5
 function watch2in1(){
-  if(ad2in1Busy) return; ad2in1Busy=true;
+  if(ad2in1Busy) return;
+  if(!showRewarded){ alert('Ad 1 not ready yet - wait 3 sec and try again'); return; }
+  ad2in1Busy=true;
   let btn=document.getElementById('adBtn2in1'); let st=document.getElementById('adStatus2in1');
-  btn.disabled=true; btn.innerText='⏳ AD 1 LOADING...'; st.innerText='Ad 1 - Please watch...';
-  // AD 1 - Your Code
-  document.getElementById('adModal').style.display='block';
-  document.getElementById('adLoadingText').innerText='📺 Loading Ad 1 of 2...';
-  document.getElementById('adStatus').innerText='Ad 1 of 2 - 2-in-1 Reward';
-  document.getElementById('adContinueBtn').style.display='none';
-  try{ if(window.AdProvider) window.AdProvider.push({"serve":{}}); }catch(e){}
-  setTimeout(()=>{
-    // AD 2 - Your Code Again
-    btn.innerText='⏳ AD 2 LOADING...'; st.innerText='Ad 2 - Please watch...';
-    document.getElementById('adLoadingText').innerText='📺 Loading Ad 2 of 2...';
-    document.getElementById('adStatus').innerText='Ad 2 of 2 - Almost done...';
-    try{ if(window.AdProvider) window.AdProvider.push({"serve":{}}); }catch(e){}
-    setTimeout(()=>{
-      document.getElementById('adModal').style.display='none';
-      playPoints+=5; save();
-      st.innerText='✅ +5 Play Points! Tap again for another 2-in-1';
-      btn.innerText='📢 WATCH AD (2-in-1) +5 PLAY'; btn.disabled=false; ad2in1Busy=false;
-      alert('✅ +5 Play Points - Thanks for watching 2 Ads!');
-    },6000);
-  },6000);
+  btn.disabled=true; btn.innerText='⏳ AD 1 - REWARDED VIDEO...'; st.innerText='Ad 1 of 2: Rewarded Video (6155603) playing...';
+  showRewarded().then(()=>{
+    console.log('ad 1 rewarded done');
+    if(!showInpage){ alert('Ad 2 (In-Page 6155715) not ready yet - wait 3 sec and try again. Ad 1 already watched, tap again for Ad 2.'); btn.disabled=false; ad2in1Busy=false; btn.innerText='📢 WATCH AD (2-in-1) +5 PLAY'; return; }
+    btn.innerText='⏳ AD 2 - IN-PAGE (DIFFERENT)...'; st.innerText='Ad 2 of 2: In-Page (6155715) - Different format - playing...';
+    return showInpage().then(()=>{
+      console.log('ad 2 inpage done');
+      playPoints+=5; save(); st.innerText='✅ +5 Play! Tap again'; btn.innerText='📢 WATCH AD (2-in-1) +5 PLAY'; btn.disabled=false; ad2in1Busy=false; alert('✅ +5 Play - Thanks for watching 2 DIFFERENT OnclickA ads!');
+    });
+  }).catch(e=>{ console.log(e); btn.disabled=false; ad2in1Busy=false; btn.innerText='📢 WATCH AD (2-in-1) +5 PLAY'; alert('Ad closed / failed - try again'); });
 }
 
-function updateWithdraw(){
-  const m=document.getElementById('wMethod').value; const amt=parseFloat(document.getElementById('wAmount').value)||0;
-  if(m.includes('Data')){ document.getElementById('wInfo').innerText='Data: Fixed R5 = 5,000 WIN Points = 1GB TikTok 24h'; }
-  else { document.getElementById('wInfo').innerText=`You will use ${amt*1000} WIN Points for R${amt}`; }
-}
-async function doWithdraw(){
-  const method=document.getElementById('wMethod').value; const wallet=document.getElementById('wWallet').value.trim();
-  let rand=parseFloat(document.getElementById('wAmount').value)||0; let pts=0;
-  if(method.includes('Data')){ rand=5; pts=5000; } else { if(rand<20||rand>100){ document.getElementById('wMsg').innerText='❌ R20 - R100 only'; return; } pts=rand*1000; }
-  if(!wallet){ document.getElementById('wMsg').innerText='❌ Enter Capitec / Phone'; return; }
-  if(points<pts){ document.getElementById('wMsg').innerText='❌ Not enough WIN Points. You have '+points+' WIN. Daily + Play cannot be withdrawn.'; return; }
-  const r=await fetch('/api/quiz-withdraw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id,name:user_name,method,wallet,rand,points:pts})});
-  const d=await r.json(); if(d.error){ document.getElementById('wMsg').innerText='❌ '+d.error; return; }
-  points-=pts; save(); document.getElementById('wMsg').innerText='✅ Withdraw sent! '+pts+' WIN = R'+rand+'. Admin will pay you.';
-}
-async function doTopup(){
-  const v=document.getElementById('tPackage').value.split('|'); const pts=parseInt(v[0]); const price=v[1]; const proof=document.getElementById('tProof').value.trim();
-  if(!proof){ document.getElementById('tMsg').innerText='❌ Paste EFT Proof first'; return; }
-  const r=await fetch('/api/quiz-topup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id,name:user_name,points:pts,price,proof})});
-  const d=await r.json(); document.getElementById('tMsg').innerText='✅ '+d.msg;
-}
-async function loadLB(){
-  try{ const r=await fetch('/api/quiz-leaderboard'); const list=await r.json();
-    document.getElementById('lb').innerHTML='<table><tr><th>#</th><th>Name</th><th>WIN</th><th>R</th></tr>'+list.slice(0,10).map((p,i)=>`<tr><td>${i+1}</td><td>${p.name||'Player'}</td><td>${p.points}</td><td>R${(p.points/1000).toFixed(2)}</td></tr>`).join('')+'</table>';
-  }catch(e){ document.getElementById('lb').innerText='No scores yet'; }
-}
-loadLocal(); loadFromServer(); updateWithdraw(); loadLB();
-</script>
-</body></html>
+function updateWithdraw(){const m=document.getElementById('wMethod').value;const amt=parseFloat(document.getElementById('wAmount').value)||0;if(m.includes('Data')){document.getElementById('wInfo').innerText='Data: Fixed R5 = 5,000 WIN = 1GB TikTok 24h';}else{document.getElementById('wInfo').innerText=`You will use ${amt*1000} WIN for R${amt}`;}}
+async function doWithdraw(){const method=document.getElementById('wMethod').value;const wallet=document.getElementById('wWallet').value.trim();let rand=parseFloat(document.getElementById('wAmount').value)||0;let pts=0;if(method.includes('Data')){rand=5;pts=5000;}else{if(rand<20||rand>100){document.getElementById('wMsg').innerText='❌ R20 - R100 only';return;}pts=rand*1000;}if(!wallet){document.getElementById('wMsg').innerText='❌ Enter Capitec / Phone';return;}if(points<pts){document.getElementById('wMsg').innerText='❌ Not enough WIN. You have '+points;return;}const r=await fetch('/api/quiz-withdraw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id,name:user_name,method,wallet,rand,points:pts})});const d=await r.json();if(d.error){document.getElementById('wMsg').innerText='❌ '+d.error;return;}points-=pts;save();document.getElementById('wMsg').innerText='✅ Withdraw sent! '+pts+' WIN = R'+rand;}
+async function doTopup(){const v=document.getElementById('tPackage').value.split('|');const pts=parseInt(v[0]);const price=v[1];const proof=document.getElementById('tProof').value.trim();if(!proof){document.getElementById('tMsg').innerText='❌ Paste EFT Proof first';return;}const r=await fetch('/api/quiz-topup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id,name:user_name,points:pts,price,proof})});const d=await r.json();document.getElementById('tMsg').innerText='✅ '+(d.msg||'Topup sent');}
+async function loadLB(){try{const r=await fetch('/api/quiz-leaderboard');const list=await r.json();document.getElementById('lb').innerHTML='<table><tr><th>#</th><th>Name</th><th>WIN</th><th>R</th></tr>'+list.slice(0,10).map((p,i)=>`<tr><td>${i+1}</td><td>${p.name||'Player'}</td><td>${p.points}</td><td>R${(p.points/1000).toFixed(2)}</td></tr>`).join('')+'</table>';}catch{document.getElementById('lb').innerText='No scores yet';}}
+loadLocal();loadFromServer();updateWithdraw();loadLB();
+</script></body></html>
