@@ -2,74 +2,140 @@
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Shaya Quiz Earn</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<style>body{font-family:sans-serif;background:#0f172a;color:#fff;text-align:center;padding:20px}button{background:#facc15;color:#000;border:0;padding:12px 20px;border-radius:12px;font-weight:700;margin:6px;cursor:pointer}.card{background:#1e293b;padding:16px;border-radius:16px;margin:10px 0}</style>
-</head><body>
-<h1>🎯 Shaya Quiz Earn</h1>
-<div class="card"><div id="name">Player</div><div>Points: <b id="points">0</b> | Play: <b id="play">0</b> | Daily: <b id="daily">0</b></div></div>
-<div class="card"><button onclick="claimDaily()">🎁 CLAIM 200 DAILY FREE</button><br><button onclick="playQuiz()">▶️ PLAY QUIZ (+10 per correct)</button></div>
-<div class="card"><div id="q">Tap PLAY to start</div><div id="answers"></div></div>
-<div class="card"><button onclick="withdraw()">💸 WITHDRAW (10000 pts)</button> <button onclick="showLeaderboard()">🏆 LEADERBOARD</button><div id="board"></div></div>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:sans-serif;background:#0f172a;color:#fff}
+.header{height:120px;background:url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800') center/cover;position:relative}
+.header:after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,transparent, #0f172a)}
+.header-label{position:absolute;bottom:8px;left:0;right:0;text-align:center;z-index:2;font-size:14px}
+.card{background:#1e293b;border-radius:16px;padding:14px;margin:12px}
+.row{display:flex;gap:8px}
+.box{flex:1;background:#111827;border-radius:12px;padding:10px;text-align:center}
+.box b{font-size:24px;display:block}
+.box small{color:#9ca3af;font-size:11px;line-height:1.2;display:block;margin-top:4px}
+.btn-green{background:#22c55e;color:#fff;border:0;width:100%;padding:14px;border-radius:12px;font-weight:800;font-size:16px;cursor:pointer}
+.btn-yellow{background:#facc15;color:#000;border:0;width:100%;padding:14px;border-radius:12px;font-weight:800;font-size:16px;cursor:pointer}
+.opt{background:#292524;border:1px solid #44403c;color:#fff;width:100%;text-align:left;padding:14px;border-radius:10px;margin:6px 0;font-size:16px;cursor:pointer}
+.opt:active{background:#facc15;color:#000}
+table{width:100%;border-collapse:collapse}th,td{padding:8px;text-align:left;font-size:14px}th{color:#9ca3af}
+.topname{text-align:center;padding:10px;font-weight:700}
+</style></head><body>
+<div class="header"><div class="header-label">🏔️ Drakensberg Mountains</div></div>
+<div class="topname" id="topname">Player</div>
+
+<div class="card">
+  <div class="row">
+    <div class="box">🎁 DAILY<b id="daily">0</b><small>NOT<br>Withdrawable</small></div>
+    <div class="box">🎮 PLAY<b id="play">0</b><small>NOT<br>Withdrawable</small></div>
+    <div class="box">🏆 WIN<b id="win">0</b><small>R0.00 -<br>WITHDRAWABLE</small></div>
+  </div>
+  <div style="height:10px"></div>
+  <button class="btn-green" onclick="claimDaily()">🎁 CLAIM 200 DAILY FREE</button>
+  <div id="claimMsg" style="color:#86efac;margin-top:8px;font-size:14px"></div>
+</div>
+
+<div class="card">
+  <button class="btn-yellow" onclick="playQuiz()">🎮 PLAYING...</button>
+  <div style="display:flex;justify-content:space-between;margin:10px 0"><span id="round">Round Question 1/5</span><span>⏱️ <b id="timer" style="color:#facc15">10s</b></span></div>
+  <div id="q" style="font-weight:800;font-size:18px">Tap PLAYING to start</div>
+  <div id="answers"></div>
+  <div id="scoreLine" style="color:#9ca3af;font-size:13px;margin-top:8px">Q 1/5 • Correct 0 • Wrong 0</div>
+</div>
+
+<div class="card">
+  <button class="btn-yellow" onclick="withdraw()">💸 WITHDRAW (10000 pts)</button>
+  <div style="height:8px"></div>
+  <button class="btn-yellow" onclick="showLeaderboard()">🏆 LEADERBOARD</button>
+</div>
+
+<div class="card">
+  <h3>🏆 TOP WIN POINTS</h3>
+  <table><thead><tr><th>#</th><th>Name</th><th>WIN</th><th>R</th></tr></thead><tbody id="board"><tr><td colspan="4">Tap LEADERBOARD</td></tr></tbody></table>
+</div>
+
 <script>
 let tg = window.Telegram?.WebApp;
-let myId = null, myName = 'Player';
-if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
-  myId = String(tg.initDataUnsafe.user.id);
-  myName = tg.initDataUnsafe.user.first_name || 'Player';
+let myId=null, myName='Player';
+if(tg && tg.initDataUnsafe && tg.initDataUnsafe.user){
+  myId=String(tg.initDataUnsafe.user.id);
+  myName=tg.initDataUnsafe.user.first_name||'Player';
   tg.ready(); tg.expand();
 } else {
-  // WEBSITE MODE - persistent device ID like Watch backup
-  myId = localStorage.getItem('shaya_quiz_device_id');
-  if (!myId) { myId = 'web_' + Math.random().toString(36).slice(2,10) + Date.now().toString(36); localStorage.setItem('shaya_quiz_device_id', myId); }
-  myName = localStorage.getItem('shaya_quiz_name') || prompt('Enter your name:') || 'Player';
-  localStorage.setItem('shaya_quiz_name', myName);
+  myId=localStorage.getItem('shaya_quiz_device_id');
+  if(!myId){ myId='web_'+Math.random().toString(36).slice(2,10)+Date.now().toString(36); localStorage.setItem('shaya_quiz_device_id',myId); }
+  myName=localStorage.getItem('shaya_quiz_name')||prompt('Enter your name:')||'Player';
+  localStorage.setItem('shaya_quiz_name',myName);
 }
-document.getElementById('name').innerText = myName + ' (' + myId + ')';
-let state = { points:0, playPoints:0, dailyPoints:0, q_index:0, correct:0, wrong:0, last_claim:null };
-function saveLocal(){ localStorage.setItem('shaya_quiz_backup_' + myId, JSON.stringify(state)); }
-function loadLocal(){ try{ let s = JSON.parse(localStorage.getItem('shaya_quiz_backup_' + myId)); if(s) state = {...state, ...s}; }catch{} }
+document.getElementById('topname').innerText=myName+' ('+myId+')';
+let state={points:0,playPoints:0,dailyPoints:0,win:0,q_index:0,correct:0,wrong:0,last_claim:null};
+function saveLocal(){ localStorage.setItem('shaya_quiz_backup_'+myId, JSON.stringify(state)); }
+function loadLocal(){ try{ let s=JSON.parse(localStorage.getItem('shaya_quiz_backup_'+myId)); if(s) state={...state,...s}; }catch{} }
 loadLocal();
+function render(){
+  document.getElementById('daily').innerText=state.dailyPoints;
+  document.getElementById('play').innerText=state.playPoints;
+  document.getElementById('win').innerText=state.win||0;
+  document.getElementById('scoreLine').innerText=`Q ${state.q_index%5+1}/5 • Correct ${state.correct} • Wrong ${state.wrong}`;
+}
 async function syncToServer(){
   saveLocal();
-  try{ await fetch('/api/sync', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id: myId, name: myName, first_name: myName, points: state.points, playPoints: state.playPoints, dailyPoints: state.dailyPoints, q_index: state.q_index, correct: state.correct, wrong: state.wrong, last_claim: state.last_claim}) }); }catch{}
+  try{ await fetch('/api/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:myId,name:myName,first_name:myName,points:state.points,playPoints:state.playPoints,dailyPoints:state.dailyPoints,q_index:state.q_index,correct:state.correct,wrong:state.wrong,last_claim:state.last_claim})}); }catch{}
 }
 async function loadFromServer(){
   try{
-    let r = await fetch('/api/user/' + myId); let d = await r.json();
-    // MAX merge - like Watch: keep highest of local vs server
-    state.points = Math.max(state.points, d.points||0);
-    state.playPoints = Math.max(state.playPoints, d.playPoints||0);
-    state.dailyPoints = Math.max(state.dailyPoints, d.dailyPoints||0);
-    state.q_index = Math.max(state.q_index, d.q_index||0);
-    state.correct = Math.max(state.correct, d.correct||0);
-    state.wrong = Math.max(state.wrong, d.wrong||0);
-    if(d.last_claim) state.last_claim = d.last_claim;
+    let r=await fetch('/api/user/'+myId); let d=await r.json();
+    state.points=Math.max(state.points,d.points||0);
+    state.playPoints=Math.max(state.playPoints,d.playPoints||0);
+    state.dailyPoints=Math.max(state.dailyPoints,d.dailyPoints||0);
+    state.q_index=Math.max(state.q_index,d.q_index||0);
+    state.correct=Math.max(state.correct,d.correct||0);
+    state.wrong=Math.max(state.wrong,d.wrong||0);
+    if(d.last_claim) state.last_claim=d.last_claim;
     saveLocal(); render();
   }catch{}
 }
-function render(){ document.getElementById('points').innerText = state.points; document.getElementById('play').innerText = state.playPoints; document.getElementById('daily').innerText = state.dailyPoints; }
 async function claimDaily(){
-  let r = await fetch('/api/claim', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id: myId, name: myName})});
-  let d = await r.json();
-  if(d.ok){ state.dailyPoints = d.dailyPoints; state.points = d.points; state.last_claim = new Date().toDateString(); saveLocal(); render(); alert('Claimed 200!'); } else alert(d.error||'Failed');
+  let r=await fetch('/api/claim',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:myId,name:myName})});
+  let d=await r.json();
+  if(d.ok){ state.dailyPoints=d.dailyPoints; state.points=d.points; state.last_claim=new Date().toDateString(); document.getElementById('claimMsg').innerText='✅ +200 Daily Points claimed!'; saveLocal(); render(); } else { document.getElementById('claimMsg').innerText=d.error||'Already claimed'; }
 }
-const QUESTIONS = [{q:'Capital of South Africa?', a:['Pretoria','Cape Town','Durban'], c:0},{q:'2 + 2 = ?', a:['3','4','5'], c:1},{q:'Largest ocean?', a:['Atlantic','Pacific','Indian'], c:1}];
+// QUESTIONS - 5 per round, with 4 answers like Screenshot 3
+const QUESTIONS=[
+{q:'Which province is Mbombela in?',a:['Mpumalanga','Gauteng','KZN','Limpopo'],c:0},
+{q:'Capital of South Africa?',a:['Pretoria','Cape Town','Durban','Joburg'],c:0},
+{q:'Which province is Durban in?',a:['KZN','Gauteng','Limpopo','Free State'],c:0},
+{q:'2 + 3 = ?',a:['4','5','6','3'],c:1},
+{q:'Largest ocean?',a:['Atlantic','Pacific','Indian','Arctic'],c:1},
+{q:'What colour is the SA flag missing?',a:['Pink','Green','Red','Blue'],c:0},
+];
+let timerInt=null, timeLeft=10;
+function startTimer(){
+  clearInterval(timerInt); timeLeft=10; document.getElementById('timer').innerText=timeLeft+'s';
+  timerInt=setInterval(()=>{
+    timeLeft--; document.getElementById('timer').innerText=timeLeft+'s';
+    if(timeLeft<=0){ clearInterval(timerInt); state.wrong++; state.q_index++; saveLocal(); render(); syncToServer(); playQuiz(); }
+  },1000);
+}
 function playQuiz(){
-  let cur = QUESTIONS[state.q_index % QUESTIONS.length];
-  document.getElementById('q').innerText = cur.q;
-  document.getElementById('answers').innerHTML = cur.a.map((x,i)=>`<button onclick="answer(${i})">${x}</button>`).join('');
+  let cur=QUESTIONS[state.q_index % QUESTIONS.length];
+  document.getElementById('round').innerText=`Round Question ${state.q_index%5+1}/5`;
+  document.getElementById('q').innerText=`Q${state.q_index%5+1}: ${cur.q}`;
+  document.getElementById('answers').innerHTML=cur.a.map((x,i)=>`<button class="opt" onclick="answer(${i})">${x}</button>`).join('');
+  render(); startTimer();
 }
 async function answer(i){
-  let cur = QUESTIONS[state.q_index % QUESTIONS.length];
-  if(i===cur.c){ state.points+=10; state.playPoints+=10; state.correct++; alert('Correct +10'); } else { state.wrong++; alert('Wrong'); }
+  clearInterval(timerInt);
+  let cur=QUESTIONS[state.q_index % QUESTIONS.length];
+  if(i===cur.c){ state.points+=10; state.playPoints+=10; state.win+=10; state.correct++; alert('Correct +10'); } else { state.wrong++; alert('Wrong'); }
   state.q_index++; saveLocal(); render(); await syncToServer(); playQuiz();
 }
 async function withdraw(){
-  let wallet = prompt('Enter wallet / number:'); if(!wallet) return;
-  let r = await fetch('/api/withdraw', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id: myId, name: myName, method:'Cash', wallet, rand:0})});
-  let d = await r.json(); if(d.ok){ state.points = d.points; saveLocal(); render(); alert('Withdraw request sent!'); } else alert(d.error);
+  let wallet=prompt('Enter wallet / number:'); if(!wallet) return;
+  let r=await fetch('/api/withdraw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:myId,name:myName,method:'Cash',wallet,rand:0})});
+  let d=await r.json(); if(d.ok){ state.points=d.points; saveLocal(); render(); alert('Withdraw request sent!'); } else alert(d.error);
 }
-async function showLeaderboard(){ let r = await fetch('/api/leaderboard'); let d = await r.json(); document.getElementById('board').innerHTML = d.map((x,i)=>`${i+1}. ${x.name} - ${x.points}`).join('<br>'); }
-loadFromServer(); render();
-// Auto-sync every 10s like Watch
-setInterval(syncToServer, 10000);
+async function showLeaderboard(){
+  let r=await fetch('/api/leaderboard'); let d=await r.json();
+  document.getElementById('board').innerHTML=d.map((x,i)=>`<tr><td>${i+1}</td><td>${x.name}</td><td>${x.points}</td><td>R${((x.points||0)*0.01).toFixed(2)}</td></tr>`).join('')||'<tr><td colspan="4">No players yet</td></tr>';
+}
+loadFromServer(); render(); setInterval(syncToServer,10000);
 </script></body></html>
