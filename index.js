@@ -1,4 +1,4 @@
-// SHAYA QUIZ - MINI APP + WEBSITE - BACKUP LIKE SHAYA WATCH ALL
+global.WebSocket = require('ws');// SHAYA QUIZ - MINI APP + WEBSITE - BACKUP LIKE SHAYA WATCH ALL
 // Backup: 1) Memory 2) quiz_backup.json (Render file) 3) Supabase quiz_users
 require('dotenv').config();
 const express = require('express');
