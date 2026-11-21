@@ -1,10 +1,18 @@
 {
-  "name": "shaya-quiz-bot",
+  "name": "shaya-quiz-earn",
   "version": "1.0.0",
+  "description": "Shaya Quiz Earn - Mini App + Website",
   "main": "index.js",
-  "scripts": { "start": "node index.js" },
+  "scripts": {
+    "start": "node index.js"
+  },
   "dependencies": {
-    "express": "^4.18.2",
-    "node-telegram-bot-api": "^0.64.0"
+    "@supabase/supabase-js": "^2.45.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "node-telegram-bot-api": "^0.66.0"
+  },
+  "engines": {
+    "node": "20.x"
   }
 }
