@@ -1,266 +1,75 @@
 <!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SHAYA QUIZ BOT - Play Win Withdraw</title>
+<title>Shaya Quiz Earn</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="https://js.onclckvd.com/in-stream-ad-admanager/tma.js"></script>
-<style>
-*{box-sizing:border-box} body{margin:0;font-family:Arial,sans-serif;background:#0b0f14;color:#fff}
-.top{padding:14px;text-align:center;background:linear-gradient(135deg,#0b3d91,#00a651)} .top h1{margin:0;font-size:24px} .top p{margin:6px 0;color:#ffe082;font-size:13px}
-.card{background:#161d27;border-radius:16px;margin:12px;padding:14px}
-.bigbtn{width:100%;padding:14px;border:0;border-radius:12px;background:#FFD700;color:#000;font-weight:900;font-size:16px;cursor:pointer;margin:6px 0}
-.btn2{background:#00a651;color:#fff} .btn3{background:#ff5722;color:#fff} .btn4{background:#2196f3;color:#fff}
-.wallets{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px} .w{background:#0b0f14;border-radius:12px;padding:10px;text-align:center} .w b{font-size:20px}
-.scenery{width:100%;height:180px;object-fit:cover;border-radius:14px;display:block}
-.q{font-size:18px;font-weight:800;margin:12px 0} .opt{width:100%;padding:12px;margin:6px 0;border-radius:10px;border:1px solid #333;background:#222;color:#fff;text-align:left;cursor:pointer;font-size:15px}
-.opt.correct{background:#00a651} .opt.wrong{background:#e53935}
-table{width:100%;border-collapse:collapse} td,th{padding:8px;border-bottom:1px solid #222;text-align:left;font-size:13px}
-input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;background:#0b0f14;color:#fff;margin:6px 0}
-.small{font-size:12px;color:#aaa;line-height:1.5} .hidden{display:none}
-</style></head>
-<body>
-<div id="notTelegram" style="display:none;padding:20px;text-align:center">
-<h1>🧠 SHAYA QUIZ BOT</h1>
-<p>This Quiz works ONLY inside Telegram, like Shaya Watch.</p>
-<p>Chrome / Browser has no Telegram ID, so it can never sync.</p>
-<a href="https://t.me/ShayaQuizBot?start=start" style="display:block;background:#FFD700;color:#000;padding:16px;border-radius:12px;font-weight:900;text-decoration:none;margin:20px 0">👉 OPEN IN TELEGRAM BOT</a>
-<p class="small">Tap the link above → Press /start → Press 🧠 PLAY QUIZ</p>
-</div>
-<div id="app" style="display:none">
-<div class="top"><h1>🧠 SHAYA QUIZ BOT</h1><p>5 Q Per Round • 15 Sec Per Q • Timer Pauses During Ad • 2in1 Ads</p><div class="small" id="userLine">Loading...</div></div>
-<div class="card"><img id="sceneryImg" class="scenery" src="https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=800&q=80" alt="Scenery"><div id="sceneryCap" style="text-align:center;padding:8px;font-size:13px">🦁 Kruger National Park</div>
-<div class="wallets">
-<div class="w">🎁 DAILY<br><b id="dailyBal">0</b><br><span class="small">NOT Withdrawable</span></div>
-<div class="w">🎮 PLAY<br><b id="playBal">0</b><br><span class="small">NOT Withdrawable</span></div>
-<div class="w">🏆 WIN<br><b id="winBal">0</b><br><span class="small" id="winRand">R0.00 - WITHDRAWABLE</span></div>
-</div>
-<button class="bigbtn btn2" onclick="claimDaily()">🎁 CLAIM 200 DAILY FREE</button>
-<div class="small" id="claimMsg">✅ Auto-sync ON - like Shaya Watch. Approve in Bot appears here in 5 sec.</div></div>
-<div class="card">
-<button class="bigbtn" id="startBtn" onclick="startQuizAuto()">🧠 START QUIZ - PRESS ONCE</button>
-<div id="quizArea" class="hidden">
-<div style="display:flex;justify-content:space-between"><span id="roundLabel">Round 1</span><span id="timerLabel" style="color:#FFD700;font-weight:900">⏱️ 15s</span></div>
-<div class="q" id="qText"></div><div id="opts"></div><div id="feedback"></div>
-<div class="small" id="progressLabel"></div>
-</div>
-<div id="roundEnd" class="hidden"><h3 id="roundResult"></h3><button class="bigbtn" onclick="startQuizAuto()">🧠 START NEXT ROUND</button></div>
-</div>
-<div class="card"><h3>🏆 TOP WIN POINTS</h3><div id="lb">Loading...</div></div>
-<div class="card"><h3>💸 WITHDRAW - WIN ONLY</h3>
-<p class="small">Min R20 (20,000 Win) • Max R100 (100,000 Win) • Data Fixed R5 = 5,000 Win = 1GB TikTok 24h</p>
-<select id="wMethod" onchange="updateWithdraw()"><option>Capitec</option><option>Airtime</option><option>Data - R5 = 1GB TikTok 24h</option></select>
-<input id="wAmount" type="number" placeholder="Amount R20 - R100 (Data: leave 5)" value="20" oninput="updateWithdraw()">
-<input id="wWallet" placeholder="Capitec Number / Phone Number">
-<div class="small" id="wInfo"></div>
-<button class="bigbtn btn3" onclick="doWithdraw()">💸 WITHDRAW WIN ONLY</button><div class="small" id="wMsg"></div></div>
-<div class="card"><h3>🏦 TOPUP - PLAY ONLY</h3><p class="small">Send to Capitec <b>1893275807</b> Ref: Your Name • Topup = PLAY ONLY • 1000 Play = R1</p>
-<select id="tPackage"><option value="1000|1">1000 PLAY = R1</option><option value="5000|5">5000 PLAY = R5</option><option value="10000|10">10000 PLAY = R10</option><option value="50000|50">50000 PLAY = R50</option><option value="100000|100">100000 PLAY = R100</option></select>
-<input id="tProof" placeholder="Paste EFT Proof / Ref">
-<button class="bigbtn btn4" onclick="doTopup()">🏦 SEND TOPUP PROOF</button><div class="small" id="tMsg"></div></div>
-</div>
-<div id="adModal" style="display:none;position:fixed;inset:0;background:#000;z-index:9999;overflow-y:auto;padding:12px;text-align:center">
-<h2 style="margin:8px 0">🎬 ADVERTISEMENT</h2>
-<p style="color:#aaa;font-size:13px" id="adTitle">Timer is PAUSED during this ad.</p>
-<div style="background:#111;border-radius:16px;min-height:200px;margin:14px 0;padding:12px">
-<div id="adLoadingText">📺 Loading Rewarded Video...</div>
-<div style="background:#1a2a1a;border:1px solid #00a651;border-radius:12px;padding:14px;margin-top:12px">
-<b style="color:#fff;font-size:16px">🧠 SHAYA QUIZ BOT</b><br>
-<span style="color:#aaa">Play - Win - Withdraw<br>Daily 200 FREE • Win R20 - R100</span><br><br>
-<a href="https://t.me/ShayaEarnNetwork" target="_blank" style="color:#FFD700">👉 Join Shaya Earn Network</a>
-</div>
-</div>
-<p id="adStatus" style="color:#FFD700;font-size:13px">Ad loading...</p>
-<button class="bigbtn" id="adContinueBtn" onclick="closeAdEarly()" style="display:none;background:#00ff88">✅ CONTINUE →</button>
-</div>
+<style>body{font-family:sans-serif;background:#0f172a;color:#fff;text-align:center;padding:20px}button{background:#facc15;color:#000;border:0;padding:12px 20px;border-radius:12px;font-weight:700;margin:6px;cursor:pointer}.card{background:#1e293b;padding:16px;border-radius:16px;margin:10px 0}</style>
+</head><body>
+<h1>🎯 Shaya Quiz Earn</h1>
+<div class="card"><div id="name">Player</div><div>Points: <b id="points">0</b> | Play: <b id="play">0</b> | Daily: <b id="daily">0</b></div></div>
+<div class="card"><button onclick="claimDaily()">🎁 CLAIM 200 DAILY FREE</button><br><button onclick="playQuiz()">▶️ PLAY QUIZ (+10 per correct)</button></div>
+<div class="card"><div id="q">Tap PLAY to start</div><div id="answers"></div></div>
+<div class="card"><button onclick="withdraw()">💸 WITHDRAW (10000 pts)</button> <button onclick="showLeaderboard()">🏆 LEADERBOARD</button><div id="board"></div></div>
 <script>
-let tmaReady=false;
-window.initCdTma?.({id:'6155603'}).then(s=>{window.show=s; tmaReady=true;}).catch(e=>console.log(e));
-const tg=window.Telegram?.WebApp;
-// ===== SHAYA WATCH SYNC: Telegram ID ONLY. No guest, no Chrome, no sync code. =====
-// Watch works because Telegram ALWAYS gives the same ID. We do the same now.
-let user_id = null;
-let user_name = 'Player';
-if(tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id){
+let tg = window.Telegram?.WebApp;
+let myId = null, myName = 'Player';
+if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+  myId = String(tg.initDataUnsafe.user.id);
+  myName = tg.initDataUnsafe.user.first_name || 'Player';
   tg.ready(); tg.expand();
-  user_id = String(tg.initDataUnsafe.user.id);
-  user_name = tg.initDataUnsafe.user.first_name || 'Player';
-  document.getElementById('app').style.display='block';
 } else {
-  // Check ?user_id= from Bot button - also allowed, but must NOT be guest_
-  const params = new URLSearchParams(location.search);
-  const fromUrl = params.get('user_id');
-  if(fromUrl && !String(fromUrl).startsWith('guest_')){
-    user_id = String(fromUrl);
-    document.getElementById('app').style.display='block';
-  } else {
-    // NOT IN TELEGRAM - like Watch, refuse to run in Chrome
-    document.getElementById('notTelegram').style.display='block';
-    throw new Error('Open via Telegram only');
-  }
+  // WEBSITE MODE - persistent device ID like Watch backup
+  myId = localStorage.getItem('shaya_quiz_device_id');
+  if (!myId) { myId = 'web_' + Math.random().toString(36).slice(2,10) + Date.now().toString(36); localStorage.setItem('shaya_quiz_device_id', myId); }
+  myName = localStorage.getItem('shaya_quiz_name') || prompt('Enter your name:') || 'Player';
+  localStorage.setItem('shaya_quiz_name', myName);
 }
-const DAILY=200, QUESTION_TIME=15, FEEDBACK_TIME=2000;
-let dailyPoints=0, playPoints=0, points=0, qIndex=0, correct=0, wrong=0, qInRound=0, currentQ=null, timer=null, timeLeft=15, playing=false, lastClaim='';
-let inAd=false, serverReady=false, adShowing=false, adClosed=false, answered=false, entryAdDone=false;
-function save(){
-  if(!serverReady) return;
-  updateUI();
-  // WATCH: Save to Supabase on EVERY action, keyed by Telegram ID
-  fetch('/api/quiz-sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id,name:user_name,points,playPoints,dailyPoints,qIndex,correct,wrong})}).catch(()=>{});
+document.getElementById('name').innerText = myName + ' (' + myId + ')';
+let state = { points:0, playPoints:0, dailyPoints:0, q_index:0, correct:0, wrong:0, last_claim:null };
+function saveLocal(){ localStorage.setItem('shaya_quiz_backup_' + myId, JSON.stringify(state)); }
+function loadLocal(){ try{ let s = JSON.parse(localStorage.getItem('shaya_quiz_backup_' + myId)); if(s) state = {...state, ...s}; }catch{} }
+loadLocal();
+async function syncToServer(){
+  saveLocal();
+  try{ await fetch('/api/sync', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id: myId, name: myName, first_name: myName, points: state.points, playPoints: state.playPoints, dailyPoints: state.dailyPoints, q_index: state.q_index, correct: state.correct, wrong: state.wrong, last_claim: state.last_claim}) }); }catch{}
 }
-function updateUI(){
-  document.getElementById('dailyBal').innerText=dailyPoints; document.getElementById('playBal').innerText=playPoints; document.getElementById('winBal').innerText=points;
-  document.getElementById('winRand').innerText='R'+(points/1000).toFixed(2)+' - WITHDRAWABLE';
-  document.getElementById('userLine').innerText=user_name+' • ID: '+user_id+' • Synced ✅';
-  document.getElementById('progressLabel').innerText=`Q ${qInRound+1}/5 • Correct ${correct} • Wrong ${wrong}`;
-}
-// WATCH: Load from Supabase on open, and re-load every 5 sec when NOT playing - approve appears automatically
 async function loadFromServer(){
   try{
-    const r=await fetch('/api/quiz-load?user_id='+encodeURIComponent(user_id)); const d=await r.json();
-    if(d && d.user_id && !playing){
-      // Server is truth - like Watch. But don't wipe a just-claimed Daily that hasn't saved yet: take MAX
-      dailyPoints=Math.max(dailyPoints, d.dailyPoints||0);
-      playPoints=d.playPoints||0; // Approve is in server, take it directly
-      if(!playing) points=Math.max(points, d.points||0);
-      qIndex=Math.max(qIndex, d.qIndex||0);
-      // If server has MORE Play than phone (approve happened), use server
-      if((d.playPoints||0) > playPoints) playPoints = d.playPoints;
-      updateUI();
-    }
-  }catch(e){}
-  serverReady=true; updateUI();
+    let r = await fetch('/api/user/' + myId); let d = await r.json();
+    // MAX merge - like Watch: keep highest of local vs server
+    state.points = Math.max(state.points, d.points||0);
+    state.playPoints = Math.max(state.playPoints, d.playPoints||0);
+    state.dailyPoints = Math.max(state.dailyPoints, d.dailyPoints||0);
+    state.q_index = Math.max(state.q_index, d.q_index||0);
+    state.correct = Math.max(state.correct, d.correct||0);
+    state.wrong = Math.max(state.wrong, d.wrong||0);
+    if(d.last_claim) state.last_claim = d.last_claim;
+    saveLocal(); render();
+  }catch{}
 }
-setInterval(()=>{ if(!playing && serverReady) loadFromServer(); }, 5000); // WATCH AUTO-SYNC
-document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && !playing) loadFromServer(); });
-function claimDaily(){
-  const today=new Date().toDateString(); if(lastClaim===today){ document.getElementById('claimMsg').innerText='✅ Already claimed today.'; return; }
-  dailyPoints+=DAILY; lastClaim=today; save(); document.getElementById('claimMsg').innerText=`✅ +${DAILY} Daily claimed! Saved to Supabase.`;
+function render(){ document.getElementById('points').innerText = state.points; document.getElementById('play').innerText = state.playPoints; document.getElementById('daily').innerText = state.dailyPoints; }
+async function claimDaily(){
+  let r = await fetch('/api/claim', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id: myId, name: myName})});
+  let d = await r.json();
+  if(d.ok){ state.dailyPoints = d.dailyPoints; state.points = d.points; state.last_claim = new Date().toDateString(); saveLocal(); render(); alert('Claimed 200!'); } else alert(d.error||'Failed');
 }
-const SCENERY=[
-  {img:'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=800&q=80',cap:'🦁 Kruger National Park'},
-  {img:'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=800&q=80',cap:'🏔️ Drakensberg Mountains'},
-  {img:'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80',cap:'🌊 Durban Beach'},
-  {img:'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80',cap:'🌅 Cape Town Sunset'},
-  {img:'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&q=80',cap:'🌲 Knysna Forest'},
-  {img:'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=800&q=80',cap:'🏞️ Blyde River Canyon'}
-];
-function setScenery(i){ let s=SCENERY[i%SCENERY.length]; let img=document.getElementById('sceneryImg'); img.onerror=()=>{img.src='https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=800&q=80';}; img.src=s.img; document.getElementById('sceneryCap').innerText=s.cap; }
-function makeQ(i){
-  const bank=[
-    {q:'What is the capital of South Africa?',a:['Cape Town','Pretoria','Durban','Johannesburg'],c:1},
-    {q:'Which province is Mbombela in?',a:['Limpopo','Mpumalanga','Gauteng','KZN'],c:1},
-    {q:'What is 15 + 27?',a:['40','41','42','43'],c:2},
-    {q:'Which animal is in Kruger National Park?',a:['Lion','Penguin','Polar Bear','Kangaroo'],c:0},
-    {q:'What is the currency of South Africa?',a:['Dollar','Euro','Rand','Pula'],c:2},
-    {q:'How many seconds in 1 minute?',a:['30','60','90','120'],c:1},
-    {q:'Which is the largest ocean?',a:['Atlantic','Indian','Pacific','Arctic'],c:2},
-    {q:'What is 9 x 8?',a:['70','71','72','73'],c:2},
-    {q:'Which city is the Mother City?',a:['Durban','Cape Town','Pretoria','Polokwane'],c:1},
-    {q:'What colour do you get mixing blue + yellow?',a:['Purple','Green','Orange','Pink'],c:1}
-  ];
-  let b=bank[i%bank.length]; let shift=i%4; let opts=[...b.a]; for(let k=0;k<shift;k++){opts.push(opts.shift());}
-  return {q:`Q${i+1}: ${b.q}`, opts, correct:(b.c-shift+4)%4};
+const QUESTIONS = [{q:'Capital of South Africa?', a:['Pretoria','Cape Town','Durban'], c:0},{q:'2 + 2 = ?', a:['3','4','5'], c:1},{q:'Largest ocean?', a:['Atlantic','Pacific','Indian'], c:1}];
+function playQuiz(){
+  let cur = QUESTIONS[state.q_index % QUESTIONS.length];
+  document.getElementById('q').innerText = cur.q;
+  document.getElementById('answers').innerHTML = cur.a.map((x,i)=>`<button onclick="answer(${i})">${x}</button>`).join('');
 }
-function hasPoints(){ return points>0||playPoints>0||dailyPoints>0; }
-function spendOnWin(){ if(playPoints>=10) playPoints-=10; else if(dailyPoints>=10) dailyPoints-=10; }
-function spendOnLose(){ if(points>=10) points-=10; else if(playPoints>=10) playPoints-=10; else if(dailyPoints>=10) dailyPoints-=10; }
-function stopTimer(){ clearInterval(timer); timer=null; }
-function startQuizAuto(){
-  if(playing) return;
-  if(!hasPoints()){ alert('No points left. Claim Daily 200 or Topup Play.'); return; }
-  playing=true; qInRound=0; correct=0; wrong=0; entryAdDone=false;
-  document.getElementById('roundEnd').classList.add('hidden');
-  document.getElementById('quizArea').classList.remove('hidden');
-  document.getElementById('startBtn').classList.add('hidden');
-  showEntryAd();
+async function answer(i){
+  let cur = QUESTIONS[state.q_index % QUESTIONS.length];
+  if(i===cur.c){ state.points+=10; state.playPoints+=10; state.correct++; alert('Correct +10'); } else { state.wrong++; alert('Wrong'); }
+  state.q_index++; saveLocal(); render(); await syncToServer(); playQuiz();
 }
-function showQuestionAuto(){
-  if(qInRound>=5){ endRound(); return; }
-  inAd=false; adShowing=false; adClosed=false; answered=false;
-  setScenery(qIndex); currentQ=makeQ(qIndex);
-  document.getElementById('roundLabel').innerText='Round Question '+(qInRound+1)+'/5';
-  document.getElementById('qText').innerText=currentQ.q;
-  const optsDiv=document.getElementById('opts'); optsDiv.innerHTML=''; document.getElementById('feedback').innerHTML='';
-  currentQ.opts.forEach((o,idx)=>{ let b=document.createElement('button'); b.className='opt'; b.innerText=o; b.onclick=()=>answerAuto(idx,b); optsDiv.appendChild(b); });
-  stopTimer(); timeLeft=QUESTION_TIME; document.getElementById('timerLabel').innerText='⏱️ '+QUESTION_TIME+'s';
-  timer=setInterval(()=>{ if(inAd) return; timeLeft--; document.getElementById('timerLabel').innerText='⏱️ '+timeLeft+'s'; if(timeLeft<=0){ stopTimer(); timeoutAnswer(); } },1000);
-  updateUI();
+async function withdraw(){
+  let wallet = prompt('Enter wallet / number:'); if(!wallet) return;
+  let r = await fetch('/api/withdraw', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id: myId, name: myName, method:'Cash', wallet, rand:0})});
+  let d = await r.json(); if(d.ok){ state.points = d.points; saveLocal(); render(); alert('Withdraw request sent!'); } else alert(d.error);
 }
-function answerAuto(idx, btn){
-  if(answered) return; answered=true; stopTimer();
-  document.querySelectorAll('.opt').forEach(b=>b.onclick=null);
-  if(idx===currentQ.correct){ points+=10; correct++; spendOnWin(); document.getElementById('feedback').innerHTML='✅ CORRECT! +10 WIN • -10 Play/Daily'; btn.classList.add('correct'); }
-  else { wrong++; spendOnLose(); document.getElementById('feedback').innerHTML='❌ WRONG! -10 Win/Play/Daily. Correct: '+currentQ.opts[currentQ.correct]; btn.classList.add('wrong'); }
-  qIndex++; save(); setTimeout(()=>{ showAdAuto(); },FEEDBACK_TIME);
-}
-function timeoutAnswer(){
-  if(answered) return; answered=true; stopTimer();
-  document.querySelectorAll('.opt').forEach(b=>b.onclick=null);
-  wrong++; spendOnLose(); document.getElementById('feedback').innerHTML='⏱️ TIME OUT! -10 Win/Play/Daily. Correct: '+currentQ.opts[currentQ.correct];
-  qIndex++; save(); setTimeout(()=>{ showAdAuto(); },FEEDBACK_TIME);
-}
-function endRound(){
-  playing=false; stopTimer(); document.getElementById('quizArea').classList.add('hidden'); document.getElementById('roundEnd').classList.remove('hidden');
-  document.getElementById('roundResult').innerText=`Round Done! Correct: ${correct} • Wrong: ${wrong} • WIN: ${points} (R${(points/1000).toFixed(2)})`;
-  save(); loadLB();
-}
-let adTimer=null;
-function showEntryAd(){
-  if(entryAdDone){ showQuestionAuto(); return; }
-  document.getElementById('adTitle').innerText='Watch this ad to start the round. Timer starts AFTER this ad.';
-  document.getElementById('adContinueBtn').innerText='✅ CONTINUE TO QUIZ →';
-  showAdOnce(()=>{ entryAdDone=true; showQuestionAuto(); });
-}
-function showAdAuto(){
-  document.getElementById('adTitle').innerText='Timer is PAUSED during this ad. Next question starts with fresh 15 sec.';
-  document.getElementById('adContinueBtn').innerText='✅ CONTINUE TO NEXT QUESTION →';
-  showAdOnce(()=>{ qInRound++; save(); if(qInRound>=5) endRound(); else showQuestionAuto(); });
-}
-function showAdOnce(onClose){
-  if(adShowing) return;
-  adShowing=true; adClosed=false; inAd=true; stopTimer();
-  window._adOnClose=onClose;
-  document.getElementById('adModal').style.display='block';
-  document.getElementById('adStatus').innerText='Ad loading... If no ad, Continue will appear in 3 sec.';
-  document.getElementById('adContinueBtn').style.display='none';
-  try{ if(window.show && tmaReady){ window.show().then(()=>{ closeAdAndNext(); }).catch(e=>console.log(e)); } }catch(e){ console.log(e); }
-  clearTimeout(adTimer);
-  adTimer=setTimeout(()=>{ if(adClosed) return; document.getElementById('adStatus').innerText='Thanks! Tap Continue.'; document.getElementById('adContinueBtn').style.display='block'; },3000);
-  clearTimeout(window._adAutoNext);
-  window._adAutoNext=setTimeout(()=>{ closeAdAndNext(); },8000);
-}
-function closeAdEarly(){ closeAdAndNext(); }
-function closeAdAndNext(){
-  if(adClosed) return;
-  adClosed=true; adShowing=false; inAd=false;
-  clearTimeout(adTimer); clearTimeout(window._adAutoNext); document.getElementById('adModal').style.display='none';
-  const cb=window._adOnClose; window._adOnClose=null; if(cb) cb();
-}
-function updateWithdraw(){
-  const m=document.getElementById('wMethod').value; const amt=parseFloat(document.getElementById('wAmount').value)||0;
-  document.getElementById('wInfo').innerText = m.includes('Data') ? 'Data: Fixed R5 = 5,000 WIN Points = 1GB TikTok 24h' : `You will use ${amt*1000} WIN Points for R${amt}`;
-}
-async function doWithdraw(){
-  const method=document.getElementById('wMethod').value; const wallet=document.getElementById('wWallet').value.trim();
-  let rand=parseFloat(document.getElementById('wAmount').value)||0; let pts=0;
-  if(method.includes('Data')){ rand=5; pts=5000; } else { if(rand<20||rand>100){ document.getElementById('wMsg').innerText='❌ R20 - R100 only'; return; } pts=rand*1000; }
-  if(!wallet){ document.getElementById('wMsg').innerText='❌ Enter Capitec / Phone'; return; }
-  if(points<pts){ document.getElementById('wMsg').innerText='❌ Not enough WIN. You have '+points+' WIN.'; return; }
-  const r=await fetch('/api/quiz-withdraw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id,name:user_name,method,wallet,rand,points:pts})});
-  const d=await r.json(); if(d.error){ document.getElementById('wMsg').innerText='❌ '+d.error; return; }
-  points=d.remaining!==undefined?d.remaining:points-pts; save(); document.getElementById('wMsg').innerText='✅ Withdraw sent! '+pts+' WIN = R'+rand+'. Admin will pay you.';
-}
-async function doTopup(){
-  const v=document.getElementById('tPackage').value.split('|'); const pts=parseInt(v[0]); const price=v[1]; const proof=document.getElementById('tProof').value.trim();
-  if(!proof){ document.getElementById('tMsg').innerText='❌ Paste EFT Proof first'; return; }
-  const r=await fetch('/api/quiz-topup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id,name:user_name,points:pts,price,proof})});
-  const d=await r.json(); document.getElementById('tMsg').innerText='✅ '+d.msg;
-}
-async function loadLB(){
-  try{ const r=await fetch('/api/quiz-leaderboard'); const list=await r.json();
-    if(!list||!list.length){ document.getElementById('lb').innerHTML='<div class="small">No scores yet - play a round!</div>'; return; }
-    document.getElementById('lb').innerHTML='<table><tr><th>#</th><th>Name</th><th>WIN</th><th>R</th></tr>'+list.slice(0,10).map((p,i)=>`<tr><td>${i+1}</td><td>${p.name||'Player'}</td><td>${p.points}</td><td>R${(p.points/1000).toFixed(2)}</td></tr>`).join('')+'</table>';
-  }catch(e){ document.getElementById('lb').innerText='No scores yet'; }
-}
-loadFromServer(); updateWithdraw(); loadLB();
-</script>
-</body></html>
+async function showLeaderboard(){ let r = await fetch('/api/leaderboard'); let d = await r.json(); document.getElementById('board').innerHTML = d.map((x,i)=>`${i+1}. ${x.name} - ${x.points}`).join('<br>'); }
+loadFromServer(); render();
+// Auto-sync every 10s like Watch
+setInterval(syncToServer, 10000);
+</script></body></html>
