@@ -25,7 +25,10 @@ window.initCdTma?.({ id: '6155603' }).then(show => { window.show = show; window.
 </script>
 
 <div class="top"><h1>🧠 SHAYA QUIZ BOT</h1><p>5 Q Per Round • 15 Sec Per Q • Timer Pauses During Ad</p><div class="small" id="userLine">Loading...</div></div>
-
+<div style="margin-top:10px">
+<input id="playerName" placeholder="Enter Your Name" maxlength="20" style="text-align:center;font-weight:900">
+<button class="bigbtn btn2" onclick="savePlayerName()" style="padding:10px">✅ SAVE MY NAME</button>
+</div>
 <div class="card"><img id="sceneryImg" class="scenery" src="https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=800&q=80"><div id="sceneryCap" style="text-align:center;padding:8px;font-size:13px">🦁 Kruger National Park</div>
 <div class="wallets"><div class="w">🏆 WIN POINTS<br><b id="winBal">0</b><br><span class="small" id="winRand">R0.00 - WITHDRAWABLE</span></div></div>
 <button class="bigbtn btnAd" id="adBtn" onclick="watchAd()">📢 WATCH AD +5 WIN</button>
