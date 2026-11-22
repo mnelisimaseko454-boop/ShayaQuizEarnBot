@@ -11,7 +11,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
 
-// --- HOMEPAGE FIX ONLY ---
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'quiz.html'));
 });
@@ -57,8 +56,7 @@ setInterval(saveBackupFile, 30000);
 
 function normId(raw) {
   if (!raw) return null;
-  let id = String(raw).trim();
-  return id;
+  return String(raw).trim();
 }
 function getUser(id) {
   id = normId(id);
@@ -89,7 +87,7 @@ function mergeUser(oldU, newU) {
     wrong: Math.max(oldU.wrong || 0, newU.wrong || 0),
     q_index: Math.max(oldU.q_index || 0, newU.q_index || 0)
   };
-        }
+}
 async function saveUser(id) {
   const u = getUser(id);
   u.updated_at = new Date().toISOString();
@@ -145,44 +143,17 @@ app.post('/api/sync', async (req, res) => {
   res.json({ ok: true, points: u.points, playPoints: u.play_points, dailyPoints: u.daily_points });
 });
 
-app.post('/api/claim', async (req, res) => {
-  const { id, name } = req.body;
-  if (!id) return res.json({ error: 'no id' });
-  const u = getUser(id);
-  if (name) u.name = name;
-  const today = new Date().toDateString();
-  if (u.last_claim === today) return res.json({ ok: false, error: 'Already claimed today', dailyPoints: u.daily_points });
-  u.daily_points = (u.daily_points || 0) + 200;
-  u.points = (u.points || 0) + 200;
-  u.last_claim = today;
-  await saveUser(id);
-  res.json({ ok: true, dailyPoints: u.daily_points, points: u.points });
-});
-
-app.post('/api/withdraw', async (req, res) => {
-  const { id, name, method, wallet, rand } = req.body;
-  const u = getUser(id);
-  const cost = 10000;
-  if (u.points < cost) return res.json({ ok: false, error: 'Need 10000 points' });
-  u.points -= cost;
-  const w = { id: Date.now(), user_id: id, device_id: id, name: u.name || name, method, wallet, rand, points: cost, status: 'pending', created_at: new Date().toISOString() };
-  withdraws.push(w);
-  await saveUser(id);
-  if (supabase) await supabase.from('quiz_withdraws').insert(w).then(r => { if (r.error) console.log('Withdraw supabase fail', r.error.message); });
-  res.json({ ok: true, points: u.points });
-});
-
-app.post('/api/topup', async (req, res) => {
-  const { id, name, package_id, points, price, proof } = req.body;
-  const u = getUser(id);
-  const t = { id: Date.now(), user_id: id, device_id: id, name: u.name || name, package_id, points, price, proof, status: 'pending', created_at: new Date().toISOString() };
-  topups.push(t);
-  u.pending_topup = t;
-  await saveUser(id);
-  if (supabase) await supabase.from('quiz_topups').insert(t).then(r => { if (r.error) console.log('Topup supabase fail', r.error.message); });
-  res.json({ ok: true });
-});
-app.get('/api/leaderboard', (req, res) => {
+// --- NEW: LINK WEB ACCOUNT TO TELEGRAM ACCOUNT ---
+app.post('/api/link', async (req, res) => {
+  const { webId, telegramId } = req.body;
+  if (!webId || !telegramId) return res.json({ ok: false, error: 'need webId + telegramId' });
+  const webU = getUser(webId);
+  const tgU = getUser(String(telegramId));
+  // Merge web points INTO telegram account - add them, don't lose them
+  tgU.points = (tgU.points || 0) + (webU.points || 0);
+  tgU.play_points = (tgU.play_points || 0) + (webU.play_points || 0);
+  tgU.daily_points = (tgU.daily_points ||
+                      app.get('/api/leaderboard', (req, res) => {
   const list = Array.from(users.values()).sort((a, b) => (b.points || 0) - (a.points || 0)).slice(0, 20).map(u => ({ name: u.name, points: u.points }));
   res.json(list);
 });
@@ -200,19 +171,11 @@ if (BOT_TOKEN) {
     u.first_name = msg.from.first_name || 'Player';
     u.username = msg.from.username || '';
     await saveUser(id);
-    bot.sendMessage(msg.chat.id, `🎯 Shaya Quiz Earn\n\nHi ${u.name}!\nPoints: ${u.points}\n\nTap PLAY to open Mini App or Website:`, {
+    bot.sendMessage(msg.chat.id, `🎯 Shaya Quiz Earn\n\nHi ${u.name}!\nPoints: ${u.points}\n\nYour Telegram ID: ${id}\nUse this ID to link your browser!\n\nTap PLAY to open Mini App or Website:`, {
       reply_markup: { inline_keyboard: [[{ text: '▶️ PLAY QUIZ', web_app: { url: WEBAPP_URL } }]] }
     });
   });
   bot.on('message', async (msg) => {
     if (!msg.text || msg.text.startsWith('/')) return;
     if (String(msg.from.id) === String(ADMIN_ID) && msg.text.startsWith('/approve')) {
-      const parts = msg.text.split(' ');
-      const target = parts[1]; const pts = parseInt(parts[2]) || 0;
-      if (target) { const u = getUser(target); u.points += pts; u.play_points += pts; await saveUser(target); bot.sendMessage(msg.chat.id, `Approved ${pts} to ${target}`); }
-    }
-  });
-  console.log('Bot started');
-}
-
-app.listen(PORT, () => console.log(`Quiz running on ${PORT}`));
+      const
