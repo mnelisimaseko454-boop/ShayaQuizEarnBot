@@ -66,7 +66,8 @@ function getUser(id) {
     let auth_source = 'telegram';
     let device_id = id;
     if (/^\d+$/.test(id)) { user_id = parseInt(id); auth_source = 'telegram'; }
-    else if (id.startsWith('web_')) { auth_source = 'website'; }
+        else if (id.startsWith('web_')) { auth_source = 'website'; }
+    else if (id.startsWith('browser_')) { auth_source = 'website'; }
     else if (id.startsWith('tg_')) { user_id = parseInt(id.replace('tg_', '')) || null; auth_source = 'telegram'; }
     users.set(id, {
       id, user_id, device_id, auth_source,
