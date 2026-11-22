@@ -190,6 +190,34 @@ app.post('/api/topup', async (req, res) => {
   res.json({ ok: true });
 });
 
+// --- ADMIN WITHDRAWS ---
+app.get('/api/admin/withdraws', (req, res) => {
+  res.json(withdraws.slice().reverse());
+});
+app.post('/api/admin/withdraw/approve', async (req, res) => {
+  const { id } = req.body;
+  const w = withdraws.find(x => String(x.id) === String(id));
+  if(!w) return res.json({ ok:false, error:'not found' });
+  w.status = 'approved';
+  saveBackupFile();
+  if(supabase) await supabase.from('quiz_withdraws').update({ status:'approved' }).eq('id', w.id);
+  res.json({ ok:true, w });
+});
+app.post('/api/admin/withdraw/reject', async (req, res) => {
+  const { id } = req.body;
+  const w = withdraws.find(x => String(x.id) === String(id));
+  if(!w) return res.json({ ok:false, error:'not found' });
+  if(w.status === 'rejected') return res.json({ ok:false, error:'already rejected' });
+  w.status = 'rejected';
+  const u = getUser(w.user_id);
+  u.points += (w.points || 10000);
+  u.play_points += (w.points || 10000);
+  await saveUser(w.user_id);
+  saveBackupFile();
+  if(supabase) await supabase.from('quiz_withdraws').update({ status:'rejected' }).eq('id', w.id);
+  res.json({ ok:true, w });
+});
+
 app.get('/api/leaderboard', (req, res) => {
   const list = Array.from(users.values()).sort((a, b) => (b.points || 0) - (a.points || 0)).slice(0, 20).map(u => ({ name: u.name, points: u.points }));
   res.json(list);
@@ -214,13 +242,44 @@ if (BOT_TOKEN) {
     });
   });
   bot.on('message', async (msg) => {
-    if (!msg.text || msg.text.startsWith('/')) return;
-    // Admin approve commands: /approve <user_id> <points>
-    if (String(msg.from.id) === String(ADMIN_ID) && msg.text.startsWith('/approve')) {
-      const parts = msg.text.split(' ');
-      const target = parts[1]; const pts = parseInt(parts[2]) || 0;
-      if (target) { const u = getUser(target); u.points += pts; u.play_points += pts; await saveUser(target); bot.sendMessage(msg.chat.id, `Approved ${pts} to ${target}`); }
+    if (!msg.text) return;
+    // ADMIN ONLY - must be BEFORE the "/" return, or /approve never runs
+    if (String(msg.from.id) === String(ADMIN_ID)) {
+      if (msg.text === '/withdraws') {
+        const pend = withdraws.filter(w => w.status === 'pending');
+        if(!pend.length) return bot.sendMessage(msg.chat.id, 'No pending withdraws ✅');
+        let txt = '⏳ PENDING WITHDRAWS:\n\n';
+        pend.forEach(w => { txt += `ID: ${w.id}\nName: ${w.name}\nUser: ${w.user_id}\nMethod: ${w.method}\nWallet: ${w.wallet}\nAmount: R${w.rand} (${w.points} WIN)\n---\n`; });
+        txt += '\nApprove: /approve_w <ID>\nReject: /reject_w <ID>';
+        return bot.sendMessage(msg.chat.id, txt);
+      }
+      if (msg.text.startsWith('/approve_w')) {
+        const id = msg.text.split(' ')[1];
+        const w = withdraws.find(x => String(x.id) === String(id));
+        if(!w) return bot.sendMessage(msg.chat.id, 'Not found');
+        w.status = 'approved'; saveBackupFile();
+        if(supabase) await supabase.from('quiz_withdraws').update({ status:'approved' }).eq('id', w.id);
+        return bot.sendMessage(msg.chat.id, `✅ Approved ${w.id} - Pay ${w.name} R${w.rand} to ${w.wallet} (${w.method})`);
+      }
+      if (msg.text.startsWith('/reject_w')) {
+        const id = msg.text.split(' ')[1];
+        const w = withdraws.find(x => String(x.id) === String(id));
+        if(!w) return bot.sendMessage(msg.chat.id, 'Not found');
+        if(w.status === 'rejected') return bot.sendMessage(msg.chat.id, 'Already rejected');
+        w.status = 'rejected';
+        const u = getUser(w.user_id); u.points += (w.points || 10000); u.play_points += (w.points || 10000); await saveUser(w.user_id);
+        saveBackupFile();
+        if(supabase) await supabase.from('quiz_withdraws').update({ status:'rejected' }).eq('id', w.id);
+        return bot.sendMessage(msg.chat.id, `❌ Rejected ${w.id} - Refunded ${w.points} WIN to ${w.name}`);
+      }
+      if (msg.text.startsWith('/approve')) {
+        const parts = msg.text.split(' ');
+        const target = parts[1]; const pts = parseInt(parts[2]) || 0;
+        if (target) { const u = getUser(target); u.points += pts; u.play_points += pts; await saveUser(target); bot.sendMessage(msg.chat.id, `Approved ${pts} to ${target}`); }
+        return;
+      }
     }
+    if (msg.text.startsWith('/')) return;
   });
   console.log('Bot started');
 }
