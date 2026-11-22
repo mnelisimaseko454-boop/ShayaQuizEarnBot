@@ -60,7 +60,15 @@ window.initCdTma?.({ id: '6155603' }).then(show => { window.show = show; window.
 <script>
 const tg=window.Telegram?.WebApp; if(tg){tg.ready();tg.expand();}
 const params=new URLSearchParams(location.search);
-const user_id=params.get('user_id')||tg?.initDataUnsafe?.user?.id||'guest_'+Math.floor(Math.random()*999999);
+// BROWSER = save separate, no login. TELEGRAM = Telegram ID
+let user_id=params.get('user_id')||tg?.initDataUnsafe?.user?.id||'';
+if(!user_id){
+  user_id=localStorage.getItem('shaya_browser_id');
+  if(!user_id){
+    user_id='browser_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+    localStorage.setItem('shaya_browser_id', user_id);
+  }
+}
 const user_name=tg?.initDataUnsafe?.user?.first_name||'Player';
 const QUIZ_TIME=15;
 // BUG FIX: roundCorrect/roundWrong reset every round, totalCorrect/totalWrong keep lifetime for leaderboard
